@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import safeDeposit, { KeyType } from '../src/safeDeposit'
+import safeDeposit from '../src/safeDeposit'
 import { alice } from '../test/data/users'
 import { UserWithCredentials } from '../src/types'
 

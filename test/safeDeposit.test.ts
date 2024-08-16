@@ -1,6 +1,5 @@
 import { test, expect } from 'vitest'
 import safeDeposit, { KeyType } from '../src/safeDeposit'
-import { alice } from './data/users'
 
 test('random byte generation', async () => {
 
