@@ -1,6 +1,8 @@
 import _sodium, { memcmp } from 'libsodium-wrappers-sumo'
 import { ed25519Keypair, x25519Keypair, UserWithCredentials } from './types'
 
+import SshPK from 'sshpk'
+
 type Sodium = typeof _sodium
 
 export enum KeyType {
@@ -22,13 +24,10 @@ class SafeDeposit {
 
     sodium!: Sodium
 
-    sshpk!: any
-
     public async init() {
 
         await _sodium.ready
         this.sodium = _sodium
-        this.sshpk = require('sshpk')
     }
 
     // for signatures
@@ -127,11 +126,11 @@ class SafeDeposit {
 
     // https://github.com/TritonDataCenter/node-sshpk
     public generateOpenSSHKeyPair() {
-        const privateKey = this.sshpk.generatePrivateKey('ed25519')
+        const privateKey = SshPK.generatePrivateKey('ed25519')
         const publicKey = privateKey.toPublic()
         return {
-            private: privateKey.toString(),
-            public: publicKey.toString()
+            private: privateKey.toString('auto'),
+            public: publicKey.toString('auto')
         }
     }
 
