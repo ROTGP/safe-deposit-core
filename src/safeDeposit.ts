@@ -66,7 +66,7 @@ class SafeDeposit {
         )
     }
 
-    public asymmetricEncrypt(message: Uint8Array, myPrivateKey: Uint8Array, theirPublicKey: Uint8Array, nonce: Uint8Array = this.randomBytes(24)): Uint8Array {
+    public asymmetricEncrypt(message: Uint8Array, myPrivateKey: Uint8Array, theirPublicKey: Uint8Array): Uint8Array {
 
         const sharedKey: Uint8Array = this.x25519SharedKey(myPrivateKey, theirPublicKey)
 
