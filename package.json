@@ -11,7 +11,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "@types/libsodium-wrappers-sumo": "^0.7.8",
