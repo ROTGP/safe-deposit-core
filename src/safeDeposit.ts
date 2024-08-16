@@ -139,22 +139,6 @@ class SafeDeposit {
         }
     }
 
-    public toHex(value: Uint8Array): string {
-        return this.sodium.to_hex(value)
-    }
-
-    public fromHex(value: string): Uint8Array {
-        return this.sodium.from_hex(value)
-    }
-
-    public toBase64(value: Uint8Array): string {
-        return this.sodium.to_base64(value)
-    }
-
-    public fromBase64(value: string): Uint8Array {
-        return this.sodium.from_base64(value)
-    }
-
     public contextFromKeyType(keyType: KeyType) {
         return KeyType[keyType].substring(0, 8).padEnd(8, '_')
     }
@@ -185,27 +169,6 @@ class SafeDeposit {
 
     public authenticatedSymmetricStreamDescrypt(ciphertext: Uint8Array, additionalData: Uint8Array, nonce: Uint8Array, key: Uint8Array): Uint8Array {
         return this.sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, ciphertext, additionalData, nonce, key)
-    }
-
-    public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
-
-        return length === undefined ? value.slice(offset) : value.slice(offset, offset + length)
-    }
-
-    public isEqual(one: Uint8Array, two: Uint8Array): boolean {
-        try {
-            return this.sodium.memcmp(one, two)
-        } catch (e) {
-            return false
-        }
-    }
-
-    public fromString(value: string): Uint8Array {
-        return this.sodium.from_string(value)
-    }
-
-    public toString(value: Uint8Array): string {
-        return this.sodium.to_string(value)
     }
 
     // https://security.stackexchange.com/questions/266915/how-to-use-pynacl-libsodium-for-key-wrap-key-encapsulation
@@ -321,6 +284,43 @@ class SafeDeposit {
             this.subArray(ciphertext, 0, 24),
             key
         )
+    }
+
+    public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
+
+        return length === undefined ? value.slice(offset) : value.slice(offset, offset + length)
+    }
+
+    public toHex(value: Uint8Array): string {
+        return this.sodium.to_hex(value)
+    }
+
+    public fromHex(value: string): Uint8Array {
+        return this.sodium.from_hex(value)
+    }
+
+    public toBase64(value: Uint8Array): string {
+        return this.sodium.to_base64(value)
+    }
+
+    public fromBase64(value: string): Uint8Array {
+        return this.sodium.from_base64(value)
+    }
+
+    public isEqual(one: Uint8Array, two: Uint8Array): boolean {
+        try {
+            return this.sodium.memcmp(one, two)
+        } catch (e) {
+            return false
+        }
+    }
+
+    public fromString(value: string): Uint8Array {
+        return this.sodium.from_string(value)
+    }
+
+    public toString(value: Uint8Array): string {
+        return this.sodium.to_string(value)
     }
 }
 
