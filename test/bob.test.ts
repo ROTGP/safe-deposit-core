@@ -13,7 +13,6 @@ test('generate deterministic wrapped master key for bob and then extract it', as
 
     const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(bob.alias, bob.passphrase, bob.pin, wrappedMasterKey)
 
-    console.log('unwrappedMasterKey len => ', wrappedMasterKey.length, unwrappedMasterKey.length)
     expect(unwrappedMasterKey).toEqual(bob.masterKey)
 })
 
