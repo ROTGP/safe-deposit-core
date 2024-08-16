@@ -1,0 +1,37 @@
+{
+  "name": "safe-deposit-core",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/safe-deposit-core.umd.cjs",
+  "module": "./dist/safe-deposit-core.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@types/libsodium-wrappers-sumo": "^0.7.8",
+    "libsodium-wrappers-sumo": "^0.7.14",
+    "sshpk": "^1.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.1.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.4",
+    "vite-plugin-dts": "^4.0.0-beta.2",
+    "vitest": "^2.0.5"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/safe-deposit-core.js",
+      "require": "./dist/safe-deposit-core.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ]
+}

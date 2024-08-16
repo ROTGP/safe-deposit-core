@@ -1,0 +1,1 @@
+export { default as safeDeposit } from './safeDeposit'
