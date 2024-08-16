@@ -1,6 +1,5 @@
 {
   "name": "safe-deposit-core",
-  "private": false,
   "version": "0.0.5",
   "license": "MIT",
   "type": "module",
@@ -29,7 +28,8 @@
   "exports": {
     ".": {
       "import": "./dist/safe-deposit-core.js",
-      "require": "./dist/safe-deposit-core.umd.cjs"
+      "require": "./dist/safe-deposit-core.umd.cjs",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
