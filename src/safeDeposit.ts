@@ -1,5 +1,5 @@
 import _sodium, { memcmp } from 'libsodium-wrappers-sumo'
-import { ed25519Keypair, x25519Keypair, UnauthenticatedUser, UserWithCredentials } from './types'
+import { ed25519Keypair, x25519Keypair, UserWithCredentials } from './types'
 
 type Sodium = typeof _sodium
 

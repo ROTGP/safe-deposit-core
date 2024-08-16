@@ -1,7 +1,6 @@
 import { test, expect } from 'vitest'
 import safeDeposit from '../src/safeDeposit'
 import { alice, bob } from '../test/data/users'
-import { UserWithCredentials } from '../src/types'
 
 test('shared key for alice and bob', async () => {
 
