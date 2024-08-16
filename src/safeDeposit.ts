@@ -31,10 +31,6 @@ class SafeDeposit {
         this.sshpk = require('sshpk')
     }
 
-    public randomBytes(length: number): Uint8Array {
-        return this.sodium.randombytes_buf(length)
-    }
-
     // for signatures
     public ed25519Keypair(seed: Uint8Array): ed25519Keypair {
         return this.sodium.crypto_sign_seed_keypair(
@@ -321,6 +317,10 @@ class SafeDeposit {
 
     public toString(value: Uint8Array): string {
         return this.sodium.to_string(value)
+    }
+
+    public randomBytes(length: number): Uint8Array {
+        return this.sodium.randombytes_buf(length)
     }
 }
 
