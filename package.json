@@ -1,6 +1,6 @@
 {
   "name": "safe-deposit-core",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "license": "MIT",
   "type": "module",
   "main": "./dist/safe-deposit-core.umd.cjs",
