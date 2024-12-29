@@ -1,19 +1,15 @@
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
+import dts from 'vite-dts'
 
 // https://vitejs.dev/guide/build.html#library-mode
 export default defineConfig({
     build: {
         lib: {
-            entry: resolve(__dirname, 'dist/index.d.ts'),
+            entry: resolve(__dirname, 'src/index.ts'),
             name: 'safe-deposit-core',
             fileName: 'safe-deposit-core',
         },
     },
-    plugins: [dts(
-        {
-            tsconfigPath: './tsconfig.json'
-        }
-    )]
+    plugins: [dts()]
 })
