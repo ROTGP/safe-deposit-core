@@ -9,7 +9,6 @@ test('generate deterministic wrapped master key for alice and then extract it', 
 
     const wrappedMasterKey = safeDeposit.generateMasterQRCode(alice.alias, alice.passphrase, alice.pin, alice.effort, alice.masterKey)
 
-    console.log('wrappedMasterKey...', safeDeposit.toHex(wrappedMasterKey))
     expect(wrappedMasterKey).toEqual(alice.QRCode)
 
     const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(alice.alias, alice.passphrase, alice.pin, wrappedMasterKey)
