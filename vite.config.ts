@@ -6,15 +6,14 @@ import dts from 'vite-plugin-dts'
 export default defineConfig({
     build: {
         lib: {
-            entry: resolve(__dirname, 'src/index.ts'),
+            entry: resolve(__dirname, 'dist/index.d.ts'),
             name: 'safe-deposit-core',
             fileName: 'safe-deposit-core',
-            formats: ['es']
         },
     },
-    plugins: [dts({
-        rollupTypes: true,
-        tsconfigPath: './tsconfig.json',
-        include: ['./dist/index.d.ts']
-    })]
+    plugins: [dts(
+        {
+            tsconfigPath: './tsconfig.json'
+        }
+    )]
 })
