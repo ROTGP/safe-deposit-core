@@ -12,5 +12,9 @@ export default defineConfig({
             formats: ['es']
         },
     },
-    plugins: [dts({ tsconfigPath: './tsconfig.json' })]
+    plugins: [dts({
+        rollupTypes: true,
+        tsconfigPath: './tsconfig.json',
+        include: ['./dist/index.d.ts']
+    })]
 })
