@@ -9,7 +9,8 @@ export default defineConfig({
             entry: resolve(__dirname, 'src/index.ts'),
             name: 'safe-deposit-core',
             fileName: 'safe-deposit-core',
+            formats: ['es']
         },
     },
-    plugins: [dts()]
+    plugins: [dts({ tsconfigPath: './tsconfig.json' })]
 })

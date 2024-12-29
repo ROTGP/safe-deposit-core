@@ -1,6 +1,6 @@
 {
   "name": "safe-deposit-core",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "license": "MIT",
   "type": "module",
   "main": "./dist/safe-deposit-core.umd.cjs",
@@ -23,7 +23,7 @@
     "@types/sshpk": "^1.17.4",
     "typescript": "^5.2.2",
     "vite": "^5.3.4",
-    "vite-plugin-dts": "^4.0.0-beta.2",
+    "vite-plugin-dts": "^4.4.0",
     "vitest": "^2.0.5"
   },
   "exports": {
