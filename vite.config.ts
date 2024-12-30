@@ -12,6 +12,7 @@ export default defineConfig({
         },
     },
     plugins: [dts({
+        rollupTypes: true,
         include: ['./src/', './test/data/users.ts']
     })]
 })
