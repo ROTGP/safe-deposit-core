@@ -1,4 +1,7 @@
-import _sodium, { memcmp } from 'libsodium-wrappers-sumo'
+import { memcmp } from 'libsodium-wrappers-sumo'
+
+const _sodium = require('libsodium-wrappers-sumo')
+
 import { ed25519Keypair, x25519Keypair, UserWithCredentials } from './types'
 
 type Sodium = typeof _sodium
