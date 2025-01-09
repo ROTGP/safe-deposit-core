@@ -7,7 +7,7 @@ test('message signing for alice', async () => {
 
     await safeDeposit.init()
 
-    const userWithCredentials: UserWithCredentials = safeDeposit.generateCredentials(alice.alias, alice.passphrase, alice.pin, alice.QRCode)
+    const userWithCredentials: UserWithCredentials = safeDeposit.generateCredentials(alice.passphrase, alice.QRCode)
 
     const message = safeDeposit.fromString('log-me-in')
 
