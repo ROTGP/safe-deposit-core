@@ -1,6 +1,6 @@
 {
   "name": "safe-deposit-core",
-  "version": "0.0.12",
+  "version": "0.0.17",
   "license": "MIT",
   "type": "module",
   "main": "./dist/safe-deposit-core.umd.cjs",
@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@types/libsodium-wrappers-sumo": "^0.7.8",
-    "libsodium-wrappers-sumo": "^0.7.14",
+    "libsodium-wrappers-sumo": "0.7.15",
     "sshpk": "^1.18.0"
   },
   "devDependencies": {

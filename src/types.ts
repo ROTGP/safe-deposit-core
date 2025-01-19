@@ -6,17 +6,19 @@ import { PasswordHashingEffort } from "./safeDeposit"
  */
 export type UnauthenticatedUser = {
 
-    // case-insensitive string from 3 to 1000 characters
-    alias: string
+    // 5 bytes CSPRNG bytes
+    uuid: Uint8Array
 
     // case-sensitive string from 4 to 1000 characters
     passphrase: string
 
-    // numeric string from 4 to 10 digits
-    pin: string
-
     // 58 bytes - wrapped masterKey + metadata
     QRCode: Uint8Array
+}
+
+export type UserWithCredentialsAndMasterKey = UserWithCredentials & {
+
+    masterKey: Uint8Array
 }
 
 export type UserWithCredentials = UnauthenticatedUser & {
@@ -26,6 +28,8 @@ export type UserWithCredentials = UnauthenticatedUser & {
     x25519Keypair: x25519Keypair
 
     ed25519Keypair: ed25519Keypair
+
+    apiAuthKeypair: ed25519Keypair
 }
 
 export type TestUser = UserWithCredentials & {
@@ -52,4 +56,22 @@ export type x25519Keypair = {
 
     // 64 bytes
     privateKey: Uint8Array
+}
+
+export type ApiAuthKeypair = {
+
+    // 32 bytes
+    publicKey: Uint8Array
+
+    // 64 bytes
+    privateKey: Uint8Array
+}
+
+export type RequestPayload = {
+    [key: string]: any
+}
+
+export type MasterKeyAndApiAuthKeypair = {
+    apiAuthKeypair: ApiAuthKeypair,
+    masterKey: Uint8Array
 }

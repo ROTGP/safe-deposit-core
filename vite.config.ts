@@ -12,5 +12,8 @@ export default defineConfig({
             formats: ['es']
         },
     },
-    plugins: [dts({ tsconfigPath: './tsconfig.json' })]
+    plugins: [dts({
+        rollupTypes: true,
+        include: ['./src/', './test/data/users.ts']
+    })]
 })

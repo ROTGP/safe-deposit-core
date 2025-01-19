@@ -7,11 +7,11 @@ test('generate deterministic wrapped master key for bob and then extract it', as
 
     await safeDeposit.init()
 
-    const wrappedMasterKey = safeDeposit.generateMasterQRCode(bob.alias, bob.passphrase, bob.pin, bob.effort, bob.masterKey)
+    const wrappedMasterKey = safeDeposit.generateMasterQRCode(bob.passphrase, bob.effort, bob.uuid, bob.masterKey)
 
     expect(wrappedMasterKey).toEqual(bob.QRCode)
 
-    const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(bob.alias, bob.passphrase, bob.pin, wrappedMasterKey)
+    const unwrappedMasterKey = safeDeposit.extractMasterKeyAndApiAuthKeypairFromQRCode(bob.passphrase, wrappedMasterKey).masterKey
 
     expect(unwrappedMasterKey).toEqual(bob.masterKey)
 })
@@ -20,7 +20,7 @@ test('generate user with credentials for bob', async () => {
 
     await safeDeposit.init()
 
-    const userWithCredentials: UserWithCredentials = safeDeposit.generateCredentials(bob.alias, bob.passphrase, bob.pin, bob.QRCode)
+    const userWithCredentials: UserWithCredentials = safeDeposit.generateCredentials(bob.passphrase, bob.QRCode)
 
     expect(userWithCredentials.symmetricKey).toEqual(bob.symmetricKey)
     expect(userWithCredentials.x25519Keypair.privateKey).toEqual(bob.x25519Keypair.privateKey)
