@@ -8,13 +8,11 @@ export default defineConfig({
         lib: {
             entry: resolve(__dirname, 'src/index.ts'),
             name: 'safe-deposit-core',
-            fileName: 'safe-deposit-core',
-            formats: ['es']
+            fileName: 'safe-deposit-core'
         },
     },
     plugins: [dts({
         rollupTypes: true,
-        include: ['./src/', './test/data/users.ts'],
-        tsconfigPath: "./tsconfig.json",
+        include: ['./src/', './test/data/users.ts']
     })]
 })
