@@ -11,7 +11,7 @@ test('generate deterministic wrapped master key for mallory and then extract it'
 
     expect(wrappedMasterKey).toEqual(mallory.QRCode)
 
-    const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(mallory.passphrase, wrappedMasterKey)
+    const unwrappedMasterKey = safeDeposit.extractMasterKeyAndApiAuthKeypairFromQRCode(mallory.passphrase, wrappedMasterKey).masterKey
 
     expect(unwrappedMasterKey).toEqual(mallory.masterKey)
 })

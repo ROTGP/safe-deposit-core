@@ -11,7 +11,7 @@ test('generate deterministic wrapped master key for bob and then extract it', as
 
     expect(wrappedMasterKey).toEqual(bob.QRCode)
 
-    const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(bob.passphrase, wrappedMasterKey)
+    const unwrappedMasterKey = safeDeposit.extractMasterKeyAndApiAuthKeypairFromQRCode(bob.passphrase, wrappedMasterKey).masterKey
 
     expect(unwrappedMasterKey).toEqual(bob.masterKey)
 })

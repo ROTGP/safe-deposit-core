@@ -28,6 +28,8 @@ export type UserWithCredentials = UnauthenticatedUser & {
     x25519Keypair: x25519Keypair
 
     ed25519Keypair: ed25519Keypair
+
+    apiAuthKeypair: ed25519Keypair
 }
 
 export type TestUser = UserWithCredentials & {
@@ -56,6 +58,20 @@ export type x25519Keypair = {
     privateKey: Uint8Array
 }
 
+export type ApiAuthKeypair = {
+
+    // 32 bytes
+    publicKey: Uint8Array
+
+    // 64 bytes
+    privateKey: Uint8Array
+}
+
 export type RequestPayload = {
     [key: string]: any
+}
+
+export type MasterKeyAndApiAuthKeypair = {
+    apiAuthKeypair: ApiAuthKeypair,
+    masterKey: Uint8Array
 }

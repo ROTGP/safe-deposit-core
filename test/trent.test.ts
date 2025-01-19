@@ -1,24 +1,24 @@
-import { test, expect } from 'vitest'
+import { test, expect, beforeEach } from 'vitest'
 import safeDeposit from '../src/safeDeposit'
 import { trent } from '../test/data/users'
 import { UserWithCredentials } from '../src/types'
 
-test('generate deterministic wrapped master key for trent and then extract it', async () => {
-
+beforeEach(async () => {
     await safeDeposit.init()
+})
+
+test('generate deterministic wrapped master key for trent and then extract it', async () => {
 
     const wrappedMasterKey = safeDeposit.generateMasterQRCode(trent.passphrase, trent.effort, trent.uuid, trent.masterKey)
 
     expect(wrappedMasterKey).toEqual(trent.QRCode)
 
-    const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(trent.passphrase, wrappedMasterKey)
+    const unwrappedMasterKey = safeDeposit.extractMasterKeyAndApiAuthKeypairFromQRCode(trent.passphrase, wrappedMasterKey).masterKey
 
     expect(unwrappedMasterKey).toEqual(trent.masterKey)
 })
 
 test('generate user with credentials for trent', async () => {
-
-    await safeDeposit.init()
 
     const userWithCredentials: UserWithCredentials = safeDeposit.generateCredentials(trent.passphrase, trent.QRCode)
 

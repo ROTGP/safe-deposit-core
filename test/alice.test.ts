@@ -11,7 +11,7 @@ test('generate deterministic wrapped master key for alice and then extract it', 
 
     expect(wrappedMasterKey).toEqual(alice.QRCode)
 
-    const unwrappedMasterKey = safeDeposit.extractMasterKeyFromQRCode(alice.passphrase, wrappedMasterKey)
+    const unwrappedMasterKey = safeDeposit.extractMasterKeyAndApiAuthKeypairFromQRCode(alice.passphrase, wrappedMasterKey).masterKey
 
     expect(unwrappedMasterKey).toEqual(alice.masterKey)
 })
