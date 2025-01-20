@@ -14,6 +14,10 @@ export const alice: TestUser = {
 
     ,
 
+    emailAddresses: ['alice.bradbury@cooper.com']
+
+    ,
+
     QRCode: fromHexString('67076e5ccd0000919ff46050c5dea353488fa09bc511e7b6807bd554aa10f18838f3e2718cf9b099aca9b2c9bd0a344dffbeef30853d0daba1d0d3d00118b4dac7cb0bc87def532182')
 
     ,
@@ -64,6 +68,10 @@ export const bob: TestUser = {
     ,
 
     passphrase: 'too many secret$'
+
+    ,
+
+    emailAddresses: ['bob.smith@gmail.com']
 
     ,
 
@@ -120,6 +128,10 @@ export const eve: TestUser = {
 
     ,
 
+    emailAddresses: []
+
+    ,
+
     QRCode: fromHexString('31cbbb3aad0000a6cbb01b3dc5dff1cc93e17a54059703ff37e5f5afde65ede12bc0dd77010d6e4ffdf66e639ad45b0d633a2564ddb1461ef859c6ce8dfc5ed907c73718c26590f812')
 
     ,
@@ -173,6 +185,10 @@ export const mallory: TestUser = {
 
     ,
 
+    emailAddresses: ['bad-intentions@up-to-no-good.com']
+
+    ,
+
     QRCode: fromHexString('3c7ea989af00010fe1670e9cd6bd2063704f34827d59e4d6f4e3bef6baad868e2be4e5c7e4a3705422fb1d1d141a8beefef2c3f378c04cdf242c3b1d9cf55ae2c92115e20e43d7a5b2')
 
     ,
@@ -223,6 +239,10 @@ export const trent: TestUser = {
     ,
 
     passphrase: 'RaiñbowT@ble_7!'
+
+    ,
+
+    emailAddresses: []
 
     ,
 

@@ -38,6 +38,8 @@ export type TestUser = UserWithCredentials & {
     masterKey: Uint8Array
 
     effort: PasswordHashingEffort
+
+    emailAddresses: string[]
 }
 
 export type ed25519Keypair = {
