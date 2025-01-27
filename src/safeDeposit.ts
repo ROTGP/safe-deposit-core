@@ -23,6 +23,11 @@ export enum KeyType {
 }
 
 // CAUTION - these may NOT be edited
+export enum Version {
+    one
+}
+
+// CAUTION - these may NOT be edited
 export enum PasswordHashingEffort {
     interactive,
     moderate,
@@ -198,14 +203,15 @@ class SafeDeposit {
 
         const encryptionKey = this.deriveKey(passphraseHash, 32, KeyType.wrapEncryption)
 
-        const authTag = this.sodium.crypto_generichash(32, masterKey, authenticationKey)
+        const authTag = this.sodium.crypto_generichash(24, masterKey, authenticationKey)
 
         const wrappedMasterKey = new Uint8Array([
             ...uuid,
+            ...[Version.one],
             ...[KeyType.master],
             ...[effort],
             ...authTag,
-            ...this.simpleStream(masterKey, this.subArray(authTag, 0, 24), encryptionKey)
+            ...this.simpleStream(masterKey, authTag, encryptionKey)
         ])
 
         const checksum: Uint8Array = this.sodium.crypto_generichash(2, wrappedMasterKey)
@@ -221,6 +227,8 @@ class SafeDeposit {
             masterKey = safeDeposit.randomBytes(32)
         }
         const wrappedMasterKey = safeDeposit.generateMasterQRCode(passphrase, effort, uuid, masterKey)
+
+        console.log('wrappedMasterKey...', wrappedMasterKey.length)
         return { masterKey: masterKey, ...safeDeposit.generateCredentials(passphrase, wrappedMasterKey) }
     }
 
@@ -400,12 +408,18 @@ class SafeDeposit {
 
     public extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase: string, wrappedMasterKey: Uint8Array): MasterKeyAndApiAuthKeypair {
 
-        const checksum: Uint8Array = this.sodium.crypto_generichash(2, this.subArray(wrappedMasterKey, 0, 71))
-        if (!this.sodium.memcmp(this.subArray(wrappedMasterKey, 71, 2), checksum)) {
+        const checksum: Uint8Array = this.sodium.crypto_generichash(2, this.subArray(wrappedMasterKey, 0, 64))
+        if (!this.sodium.memcmp(this.subArray(wrappedMasterKey, 64, 2), checksum)) {
             throw new Error('Incorrect checksum')
         }
 
-        const keyType: number = wrappedMasterKey[5]
+        const version: number = wrappedMasterKey[5]
+
+        if (version !== Version.one) {
+            throw new Error('Incorrect version')
+        }
+
+        const keyType: number = wrappedMasterKey[6]
 
         if (keyType !== KeyType.master) {
             throw new Error('Incorrect key type')
@@ -419,7 +433,7 @@ class SafeDeposit {
             32,
             passphrase,
             uuidHash,
-            wrappedMasterKey[6]
+            wrappedMasterKey[7]
         )
 
         const authenticationKey = this.deriveKey(passphraseHash, 32, KeyType.wrapAuthentication)
@@ -431,13 +445,13 @@ class SafeDeposit {
         const apiAuthenticationKeypair = this.ed25519Keypair(apiAuthenticationKeypairSeed)
 
         const unwrappedMasterKey = this.simpleStream(
-            this.subArray(wrappedMasterKey, 39, 32),
-            this.subArray(wrappedMasterKey, 7, 24),
+            this.subArray(wrappedMasterKey, 32, 32),
+            this.subArray(wrappedMasterKey, 8, 24),
             encryptionKey
         )
 
-        const authTag = this.sodium.crypto_generichash(32, unwrappedMasterKey, authenticationKey)
-        if (!this.isEqual(authTag, this.subArray(wrappedMasterKey, 7, 32))) {
+        const authTag = this.sodium.crypto_generichash(24, unwrappedMasterKey, authenticationKey)
+        if (!this.isEqual(authTag, this.subArray(wrappedMasterKey, 8, 24))) {
             throw new Error('Key authentication failed - incorrect credentials')
         }
 

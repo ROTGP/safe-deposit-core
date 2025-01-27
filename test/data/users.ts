@@ -18,7 +18,7 @@ export const alice: TestUser = {
 
     ,
 
-    QRCode: fromHexString('67076e5ccd0000919ff46050c5dea353488fa09bc511e7b6807bd554aa10f18838f3e2718cf9b099aca9b2c9bd0a344dffbeef30853d0daba1d0d3d00118b4dac7cb0bc87def532182')
+    QRCode: fromHexString('67076e5ccd000000d9213484b977036cd2d06be80bf54207ec8d01a1a77e5ac453e6cfb9102c801090d54b33402f31d1cd5b41089f0dfa390be6aed77a80c90fc193')
 
     ,
 
@@ -75,7 +75,7 @@ export const bob: TestUser = {
 
     ,
 
-    QRCode: fromHexString('b7de4b42680001d7766d877ea6aa83f091a0774a45f70cd079cc554128cd61f07369c9ba02833cd66f0bcf3d3b1b2e4fa420924d2a1c0680afd7443fa5d4e6f6e479b1e4143e5880ca')
+    QRCode: fromHexString('b7de4b42680000014fa317fe2762b4df81b7afc879c80423d60142229277c7addf975f5bc0722a21ab4afd60692888c3b831c90430734c4aef13d3d858e4d7e63580')
 
     ,
 
@@ -132,7 +132,7 @@ export const eve: TestUser = {
 
     ,
 
-    QRCode: fromHexString('31cbbb3aad0000a6cbb01b3dc5dff1cc93e17a54059703ff37e5f5afde65ede12bc0dd77010d6e4ffdf66e639ad45b0d633a2564ddb1461ef859c6ce8dfc5ed907c73718c26590f812')
+    QRCode: fromHexString('31cbbb3aad000000a3c4848843a74bb42aa9b783e1ea02bf116526cefab8eb57902ddc9f50e06ba241f58c2c12942bd6debf8c45ab67209efc9e0451da5f3cb1d1c6')
 
     ,
 
@@ -189,7 +189,7 @@ export const mallory: TestUser = {
 
     ,
 
-    QRCode: fromHexString('3c7ea989af00010fe1670e9cd6bd2063704f34827d59e4d6f4e3bef6baad868e2be4e5c7e4a3705422fb1d1d141a8beefef2c3f378c04cdf242c3b1d9cf55ae2c92115e20e43d7a5b2')
+    QRCode: fromHexString('3c7ea989af000001da3f8ae9bc18e3ff0bb0b6a70e6b8c37424bb550b51485f3d2415a93c7e5387a20949011901efc090353cafaa6aa0985129cd7a87accdce44aab')
 
     ,
 
@@ -246,7 +246,7 @@ export const trent: TestUser = {
 
     ,
 
-    QRCode: fromHexString('11f0d3b72f0000d86228ec217e12f075449e284b0965e90d8d7df16e43efba70528586d4853a77eaca1afebe1ff69f7f024cb889fb3fbadca4dd1d42345465063686ef49ea30288744')
+    QRCode: fromHexString('11f0d3b72f0000004a0ceaf024c2c6d748f62aff912923575697eee5290a846fb94159a402973646c454dd10dbe6b3003400179a8e95970504453158242770172b80')
 
     ,
 
