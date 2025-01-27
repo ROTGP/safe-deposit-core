@@ -6,7 +6,7 @@ const fromHexString = (hexString: string) => Uint8Array.from(hexString.match(/.{
 // Person A
 export const alice: TestUser = {
 
-    uuid: fromHexString('67076e5ccd')
+    uuid: fromHexString('51b4d0ef7e43c561e8a25912f82b1bfa')
 
     ,
 
@@ -18,7 +18,7 @@ export const alice: TestUser = {
 
     ,
 
-    QRCode: fromHexString('67076e5ccd0000919ff46050c5dea353488fa09bc511e7b6807bd554aa10f18838f3e2718cf9b099aca9b2c9bd0a344dffbeef30853d0daba1d0d3d00118b4dac7cb0bc87def532182')
+    QRCode: fromHexString('51b4d0ef7e43c561e8a25912f82b1bfa000000cf81899e5cc8f61527d01da70043e579e05981a66ec239b153f978b013c37b844b64ab50e7f74bb9a8a9747f59209821aad9d79bf340e35e4e1371')
 
     ,
 
@@ -63,7 +63,7 @@ export const alice: TestUser = {
 // Person B
 export const bob: TestUser = {
 
-    uuid: fromHexString('b7de4b4268')
+    uuid: fromHexString('dd7194a14738f1930e81cee691de3ebb')
 
     ,
 
@@ -75,7 +75,7 @@ export const bob: TestUser = {
 
     ,
 
-    QRCode: fromHexString('b7de4b42680001d7766d877ea6aa83f091a0774a45f70cd079cc554128cd61f07369c9ba02833cd66f0bcf3d3b1b2e4fa420924d2a1c0680afd7443fa5d4e6f6e479b1e4143e5880ca')
+    QRCode: fromHexString('dd7194a14738f1930e81cee691de3ebb0000013ad7ab04434f2350879bd42aa3000ac6959cce5930c8b3d286ce1b3ef5f2694cf9b1c37d842ad4b12593f3c92ce89f283f87adea14d2324b65c820')
 
     ,
 
@@ -120,7 +120,7 @@ export const bob: TestUser = {
 // Eavesdropping Eve
 export const eve: TestUser = {
 
-    uuid: fromHexString('31cbbb3aad')
+    uuid: fromHexString('a2210baa2a9aef5c73f65fa195bcf185')
 
     ,
 
@@ -132,7 +132,7 @@ export const eve: TestUser = {
 
     ,
 
-    QRCode: fromHexString('31cbbb3aad0000a6cbb01b3dc5dff1cc93e17a54059703ff37e5f5afde65ede12bc0dd77010d6e4ffdf66e639ad45b0d633a2564ddb1461ef859c6ce8dfc5ed907c73718c26590f812')
+    QRCode: fromHexString('a2210baa2a9aef5c73f65fa195bcf185000000e096f24cc11fa13baccac783ddfe10c63228b7292af4ac27a4257ac67e7c3e5f457793b5506682441d4542080bda59a254033f2d77317e39315071')
 
     ,
 
@@ -177,7 +177,7 @@ export const eve: TestUser = {
 // Malicious Mallory
 export const mallory: TestUser = {
 
-    uuid: fromHexString('3c7ea989af')
+    uuid: fromHexString('b17dcb21c62d0745fdb08d4c3bd5cc6d')
 
     ,
 
@@ -189,7 +189,7 @@ export const mallory: TestUser = {
 
     ,
 
-    QRCode: fromHexString('3c7ea989af00010fe1670e9cd6bd2063704f34827d59e4d6f4e3bef6baad868e2be4e5c7e4a3705422fb1d1d141a8beefef2c3f378c04cdf242c3b1d9cf55ae2c92115e20e43d7a5b2')
+    QRCode: fromHexString('b17dcb21c62d0745fdb08d4c3bd5cc6d0000017de0938fa4ece9b86ae554131031f91c19edde13da895fd1a24e07d4a08f6e876fec2f6852d4847d46410388c2e2004174ee28bcd4f1dab4ffc6aa')
 
     ,
 
@@ -234,7 +234,7 @@ export const mallory: TestUser = {
 // Trustworthy Trent
 export const trent: TestUser = {
 
-    uuid: fromHexString('11f0d3b72f')
+    uuid: fromHexString('ae9904cae536a0cf35e614a11ccc7073')
 
     ,
 
@@ -246,7 +246,7 @@ export const trent: TestUser = {
 
     ,
 
-    QRCode: fromHexString('11f0d3b72f0000d86228ec217e12f075449e284b0965e90d8d7df16e43efba70528586d4853a77eaca1afebe1ff69f7f024cb889fb3fbadca4dd1d42345465063686ef49ea30288744')
+    QRCode: fromHexString('ae9904cae536a0cf35e614a11ccc7073000000059cebbf5264c7cd4fca5e4f0c6873a902a21639db3d6fd5a7b8a94a78b8b303f1de6825572b86c6fe25ebc953e0ca1526d4e2b9c8a352a5e4b295')
 
     ,
 
