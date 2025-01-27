@@ -186,14 +186,12 @@ class SafeDeposit {
     // https://security.stackexchange.com/questions/266915/how-to-use-pynacl-libsodium-for-key-wrap-key-encapsulation
     public generateMasterQRCode(passphrase: string, effort: PasswordHashingEffort, uuidBytes?: Uint8Array, masterKeyBytes?: Uint8Array): Uint8Array {
 
-        const uuid = uuidBytes === undefined ? this.randomBytes(5) : uuidBytes
-
-        const uuidHash = this.simpleHash(16, uuid)
+        const uuid = uuidBytes === undefined ? this.randomBytes(16) : uuidBytes
 
         const passphraseHash: Uint8Array = this.generatePasswordHash(
             32,
             passphrase,
-            uuidHash,
+            uuid,
             effort
         )
 
@@ -214,7 +212,7 @@ class SafeDeposit {
             ...this.simpleStream(masterKey, authTag, encryptionKey)
         ])
 
-        const checksum: Uint8Array = this.sodium.crypto_generichash(2, wrappedMasterKey)
+        const checksum: Uint8Array = this.sodium.crypto_generichash(3, wrappedMasterKey)
 
         return new Uint8Array([
             ...wrappedMasterKey,
@@ -228,7 +226,6 @@ class SafeDeposit {
         }
         const wrappedMasterKey = safeDeposit.generateMasterQRCode(passphrase, effort, uuid, masterKey)
 
-        console.log('wrappedMasterKey...', wrappedMasterKey.length)
         return { masterKey: masterKey, ...safeDeposit.generateCredentials(passphrase, wrappedMasterKey) }
     }
 
@@ -338,7 +335,7 @@ class SafeDeposit {
 
     public generateCredentials(passphrase: string, QRCode: Uint8Array): UserWithCredentials {
 
-        const uuid = this.subArray(QRCode, 0, 5)
+        const uuid = this.subArray(QRCode, 0, 16)
 
         const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase, QRCode)
 
@@ -367,7 +364,7 @@ class SafeDeposit {
 
     public generateCredentialsWithMasterKey(passphrase: string, QRCode: Uint8Array): UserWithCredentialsAndMasterKey {
 
-        const uuid = this.subArray(QRCode, 0, 5)
+        const uuid = this.subArray(QRCode, 0, 16)
 
         const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase, QRCode)
 
@@ -397,7 +394,7 @@ class SafeDeposit {
 
     public updateQRCode(oldPassphrase: string, oldQRCode: Uint8Array, newPassphrase: string, newEffort: PasswordHashingEffort): Uint8Array {
 
-        const uuid = this.subArray(oldQRCode, 0, 5)
+        const uuid = this.subArray(oldQRCode, 0, 16)
 
         const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(oldPassphrase, oldQRCode)
 
@@ -408,32 +405,31 @@ class SafeDeposit {
 
     public extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase: string, wrappedMasterKey: Uint8Array): MasterKeyAndApiAuthKeypair {
 
-        const checksum: Uint8Array = this.sodium.crypto_generichash(2, this.subArray(wrappedMasterKey, 0, 64))
-        if (!this.sodium.memcmp(this.subArray(wrappedMasterKey, 64, 2), checksum)) {
+        const checksum: Uint8Array = this.sodium.crypto_generichash(3, this.subArray(wrappedMasterKey, 0, 75))
+
+        if (!this.sodium.memcmp(this.subArray(wrappedMasterKey, 75, 3), checksum)) {
             throw new Error('Incorrect checksum')
         }
 
-        const version: number = wrappedMasterKey[5]
+        const version: number = wrappedMasterKey[16]
 
         if (version !== Version.one) {
             throw new Error('Incorrect version')
         }
 
-        const keyType: number = wrappedMasterKey[6]
+        const keyType: number = wrappedMasterKey[17]
 
         if (keyType !== KeyType.master) {
             throw new Error('Incorrect key type')
         }
 
-        const uuid = this.subArray(wrappedMasterKey, 0, 5)
-
-        const uuidHash = this.simpleHash(16, uuid)
+        const uuid = this.subArray(wrappedMasterKey, 0, 16)
 
         const passphraseHash: Uint8Array = this.generatePasswordHash(
             32,
             passphrase,
-            uuidHash,
-            wrappedMasterKey[7]
+            uuid,
+            wrappedMasterKey[18]
         )
 
         const authenticationKey = this.deriveKey(passphraseHash, 32, KeyType.wrapAuthentication)
@@ -445,13 +441,13 @@ class SafeDeposit {
         const apiAuthenticationKeypair = this.ed25519Keypair(apiAuthenticationKeypairSeed)
 
         const unwrappedMasterKey = this.simpleStream(
-            this.subArray(wrappedMasterKey, 32, 32),
-            this.subArray(wrappedMasterKey, 8, 24),
+            this.subArray(wrappedMasterKey, 43, 32),
+            this.subArray(wrappedMasterKey, 19, 24),
             encryptionKey
         )
 
         const authTag = this.sodium.crypto_generichash(24, unwrappedMasterKey, authenticationKey)
-        if (!this.isEqual(authTag, this.subArray(wrappedMasterKey, 8, 24))) {
+        if (!this.isEqual(authTag, this.subArray(wrappedMasterKey, 19, 24))) {
             throw new Error('Key authentication failed - incorrect credentials')
         }
 
