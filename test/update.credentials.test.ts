@@ -18,7 +18,7 @@ test('the updating of the credentials of a user', async () => {
 
     const userWithUpdatedCredentialsAndMasterKey = safeDeposit.generateCredentialsWithMasterKey(newPassphrase, newQRCode)
 
-    safeDeposit.prettyUser(userWithUpdatedCredentialsAndMasterKey)
+    // safeDeposit.prettyUser(userWithUpdatedCredentialsAndMasterKey)
 
     // same
     expect(person.uuid).toEqual(userWithUpdatedCredentialsAndMasterKey.uuid)

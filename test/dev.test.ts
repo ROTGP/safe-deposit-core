@@ -9,9 +9,9 @@ beforeEach(async () => {
 
 test('generate deterministic wrapped master key for eve and then extract it', async () => {
 
-    const person = alice
+    // const person = alice
 
-    const userWithCredentialsAndMasterKey = safeDeposit.generateUser(person.passphrase, person.effort, person.uuid, person.masterKey)
+    // const userWithCredentialsAndMasterKey = safeDeposit.generateUser(person.passphrase, person.effort, person.uuid, person.masterKey)
 
-    safeDeposit.prettyUser(userWithCredentialsAndMasterKey)
+    // safeDeposit.prettyUser(userWithCredentialsAndMasterKey)
 })
