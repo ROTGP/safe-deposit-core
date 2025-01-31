@@ -1,6 +1,6 @@
 const _sodium = require('libsodium-wrappers-sumo')
 
-// import ssh from 'micro-key-producer/ssh.js';
+import ssh from 'micro-key-producer/ssh.js'
 
 import QRCode, { QRCodeSegment } from 'qrcode'
 
@@ -43,8 +43,6 @@ export enum PasswordHashingEffort {
 class SafeDeposit {
 
     sodium!: Sodium
-
-    // sshpk!: any
 
     public async init() {
         await _sodium.ready
@@ -147,23 +145,13 @@ class SafeDeposit {
 
     public generateOpenSSHKeyPair() {
 
-        // const seed = this.randomBytes(32)
-        // const key = ssh(seed, 'user@example.com')
-        // console.log(key.privateKey)
+        const seed = this.randomBytes(32)
+        const key = ssh(seed)
 
-        // return {
-        //     private: key.privateKey,
-        //     public: key.privateKey
-        // }
-
-
-        // ssh
-        // const privateKey = this.sshpk.generatePrivateKey('ed25519')
-        // const publicKey = privateKey.toPublic()
-        // return {
-        //     private: privateKey.toString(),
-        //     public: publicKey.toString()
-        // }
+        return {
+            private: key.privateKey,
+            public: key.publicKey
+        }
     }
 
     public contextFromKeyType(keyType: KeyType) {
