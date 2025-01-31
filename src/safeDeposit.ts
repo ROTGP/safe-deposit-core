@@ -1,5 +1,9 @@
 const _sodium = require('libsodium-wrappers-sumo')
 
+import QRCode, { QRCodeSegment } from 'qrcode'
+
+import jsQR from 'jsqr'
+
 import {
     ed25519Keypair,
     x25519Keypair,
@@ -41,7 +45,6 @@ class SafeDeposit {
     sshpk!: any
 
     public async init() {
-
         await _sodium.ready
         this.sodium = _sodium
         this.sshpk = require('sshpk')
@@ -513,6 +516,61 @@ class SafeDeposit {
 
     public randomBytes(length: number): Uint8Array {
         return this.sodium.randombytes_buf(length)
+    }
+
+    public bytesToCanvas(bytes: Uint8Array, canvasId: string, size: number) {
+
+        const segments: QRCodeSegment[] = [{ data: bytes, mode: 'byte' }]
+
+        QRCode.toCanvas(
+            document.getElementById(canvasId),
+            segments,
+            {
+                width: size,
+                errorCorrectionLevel: 'low'
+
+            })
+    }
+
+    public async bytesToImg(bytes: Uint8Array, size: number): Promise<HTMLImageElement> {
+
+        const segments: QRCodeSegment[] = [{ data: bytes, mode: 'byte' }]
+
+        const dataUrl = await QRCode.toDataURL(
+            segments,
+            {
+                width: size,
+                errorCorrectionLevel: 'low'
+            })
+
+        const img: HTMLImageElement = document.createElement('img')
+        img.src = dataUrl
+        img.width = size
+        img.height = size
+        return img
+    }
+
+    public canvasToBytes(canvasId: string): Uint8Array | undefined {
+
+        const canvas = document.getElementById(canvasId) as HTMLCanvasElement
+
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+            return undefined
+        }
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+
+        let code: any
+
+        try {
+            code = jsQR(imageData, canvas.width, canvas.height)?.binaryData
+            return code ? Uint8Array.from(code) : undefined
+
+        } catch (e) {
+            return undefined
+        }
     }
 }
 
