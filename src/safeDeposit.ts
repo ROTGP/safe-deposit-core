@@ -1,5 +1,7 @@
 const _sodium = require('libsodium-wrappers-sumo')
 
+// import ssh from 'micro-key-producer/ssh.js';
+
 import QRCode, { QRCodeSegment } from 'qrcode'
 
 import jsQR from 'jsqr'
@@ -42,12 +44,11 @@ class SafeDeposit {
 
     sodium!: Sodium
 
-    sshpk!: any
+    // sshpk!: any
 
     public async init() {
         await _sodium.ready
         this.sodium = _sodium
-        this.sshpk = require('sshpk')
     }
 
     // for signatures
@@ -144,14 +145,25 @@ class SafeDeposit {
         )
     }
 
-    // https://github.com/TritonDataCenter/node-sshpk
     public generateOpenSSHKeyPair() {
-        const privateKey = this.sshpk.generatePrivateKey('ed25519')
-        const publicKey = privateKey.toPublic()
-        return {
-            private: privateKey.toString(),
-            public: publicKey.toString()
-        }
+
+        // const seed = this.randomBytes(32)
+        // const key = ssh(seed, 'user@example.com')
+        // console.log(key.privateKey)
+
+        // return {
+        //     private: key.privateKey,
+        //     public: key.privateKey
+        // }
+
+
+        // ssh
+        // const privateKey = this.sshpk.generatePrivateKey('ed25519')
+        // const publicKey = privateKey.toPublic()
+        // return {
+        //     private: privateKey.toString(),
+        //     public: publicKey.toString()
+        // }
     }
 
     public contextFromKeyType(keyType: KeyType) {
