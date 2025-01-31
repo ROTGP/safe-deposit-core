@@ -45,7 +45,6 @@ class SafeDeposit {
     sshpk!: any
 
     public async init() {
-
         await _sodium.ready
         this.sodium = _sodium
         this.sshpk = require('sshpk')
