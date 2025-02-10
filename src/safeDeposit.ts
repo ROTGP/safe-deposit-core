@@ -1,3 +1,4 @@
+
 const _sodium = require('libsodium-wrappers-sumo')
 
 import ssh from 'micro-key-producer/ssh.js'
@@ -6,38 +7,97 @@ import QRCode, { QRCodeSegment } from 'qrcode'
 
 import jsQR from 'jsqr'
 
+import { xchacha20poly1305 } from '@noble/ciphers/chacha'
+
+import { ml_kem1024 } from '@noble/post-quantum/ml-kem'
+import { ml_dsa87 } from '@noble/post-quantum/ml-dsa'
+import { utf8ToBytes, randomBytes, equalBytes } from '@noble/post-quantum/utils'
+
+import { bytesToHex, hexToBytes, bytesToUtf8 } from '@noble/ciphers/utils';
+
+import { base64 } from '@scure/base'
+
+import * as hkdf from '@noble/hashes/hkdf'
+import { sha512 } from '@noble/hashes/sha2'
+
+
 import {
-    ed25519Keypair,
-    x25519Keypair,
+    SignatureKeypair,
     UserWithCredentials,
-    UserWithCredentialsAndMasterKey,
     RequestPayload,
-    MasterKeyAndApiAuthKeypair
+    KeyExchangeKeypair,
+    EncapsulatedSecret,
+    AccountKeyingMaterial,
+    DecryptedAsymmetricMessage,
+    PassphraseHashSubKeys
 } from './types'
+
+import { aeskw } from '@noble/ciphers/aes'
+import { blake2b } from '@noble/hashes/blake2b'
+
+const NONCE_LENGTH = 24
+const SIGNATURE_LENGTH = 4627
 
 type Sodium = typeof _sodium
 
 // CAUTION - these may NOT be edited
 export enum KeyType {
-    master,
-    ed25519,
-    x25519,
-    wrapAuthentication,
-    wrapEncryption,
-    symmetric,
-    apiAuthentication
+
+    /**
+     * The master key, for generating keying material.
+     */
+    master = 1,
+
+    /**
+     * For generating a ML-DSA keypair, which is used for signing
+     * payloads destined for other users.
+     */
+    signing = 2,
+
+    /**
+     * For generating a ML-KEM keypair, which is used for key
+     * agreement with other users.
+     */
+    keyExchange = 3,
+
+    /**
+     * For generating a XChaCha20-poly1305 key, which is used for
+     * private symmetric encryption.
+     */
+    symmetric = 4,
+
+    /**
+     * For generating a ML-DSA keypair, which is used for signing
+     * authenticated API requests.
+     */
+    apiAuthentication = 5
 }
 
 // CAUTION - these may NOT be edited
 export enum Version {
-    one
+    one = 1
 }
 
 // CAUTION - these may NOT be edited
 export enum PasswordHashingEffort {
-    interactive,
-    moderate,
-    sensitive
+
+    /**
+     * Mem: 2 ** 26
+     * Ops: 2
+     */
+    interactive = 1,
+
+    /**
+     * Mem: 2 ** 28
+     * Ops: 3
+     */
+    moderate = 2,
+
+    /**
+     * Mem: 2 ** 30
+     * Ops: 4
+     */
+    sensitive = 3
 }
 
 class SafeDeposit {
@@ -49,68 +109,235 @@ class SafeDeposit {
         this.sodium = _sodium
     }
 
-    // for signatures
-    public ed25519Keypair(seed: Uint8Array): ed25519Keypair {
-        return this.sodium.crypto_sign_seed_keypair(
-            seed
-        )
+    public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
+
+        return length === undefined ? value.slice(offset) : value.slice(offset, offset + length)
     }
 
-    public sign(message: Uint8Array, myPrivateKey: Uint8Array): Uint8Array {
-        return this.sodium.crypto_sign_detached(message, myPrivateKey)
+    public isEqual(one: Uint8Array, two: Uint8Array): boolean {
+        try {
+            return equalBytes(one, two)
+        } catch (e) {
+            return false
+        }
+    }
+
+    public toHex(value: Uint8Array): string {
+        return bytesToHex(value)
+    }
+
+    public fromHex(value: string): Uint8Array {
+        return hexToBytes(value)
+    }
+
+    public fromString(value: string): Uint8Array {
+        return utf8ToBytes(value)
+    }
+
+    public toString(value: Uint8Array): string {
+        return bytesToUtf8(value)
+    }
+
+    public randomBytes(length: number): Uint8Array {
+        return randomBytes(length)
+    }
+
+    public toBase64(value: Uint8Array): string {
+        return base64.encode(value)
+    }
+
+    public fromBase64(value: string): Uint8Array {
+        return base64.decode(value)
+    }
+
+    // encode a (max) 16-bit number into two bytes
+    public intToBytes(value: number): Uint8Array {
+        if (value >= 65536) {
+            throw new Error('Value must be less than 65536')
+        }
+        return new Uint8Array(new Uint16Array([value]).buffer)
+    }
+
+    // decode two bytes into a (max) 16-bit number 
+    public bytesToInt(value: Uint8Array): number {
+        return (new DataView((new Uint8Array(value)).buffer, 0)).getUint16(0, true)
+    }
+
+    // for signatures
+    public signatureKeypair(seed: Uint8Array): SignatureKeypair {
+        return ml_dsa87.keygen(seed)
+    }
+
+    public sign(message: Uint8Array, mySecretKey: Uint8Array): Uint8Array {
+        return ml_dsa87.sign(mySecretKey, message)
     }
 
     public verify(message: Uint8Array, signature: Uint8Array, theirPublicKey: Uint8Array): boolean {
-        return this.sodium.crypto_sign_verify_detached(signature, message, theirPublicKey)
+        return ml_dsa87.verify(theirPublicKey, message, signature)
     }
 
-    // public and private keypair generation for generating shared
-    // x25519 keys
-    public x25519Keypair(seed?: Uint8Array): x25519Keypair {
-        return seed ? this.sodium.crypto_box_seed_keypair(
-            seed
-        ) : this.sodium.crypto_box_keypair()
+    // seed should be 64 bytes
+    public keyExchangeKeypair(seed?: Uint8Array): KeyExchangeKeypair {
+        return ml_kem1024.keygen(seed)
+    }
+    public encapsulate(theirPublicKey: Uint8Array, message?: Uint8Array): EncapsulatedSecret {
+        return ml_kem1024.encapsulate(theirPublicKey, message)
     }
 
-    // x25519 shared key generation
-    public x25519SharedKey(myPrivateKey: Uint8Array, theirPublicKey: Uint8Array): Uint8Array {
-        return this.sodium.crypto_scalarmult(
-            myPrivateKey,
-            theirPublicKey
-        )
+    public decapsulate(cipherText: Uint8Array, theirSecretKey: Uint8Array) {
+        return ml_kem1024.decapsulate(cipherText, theirSecretKey)
     }
 
-    public asymmetricEncrypt(message: Uint8Array, myPrivateKey: Uint8Array, theirPublicKey: Uint8Array): Uint8Array {
-
-        const sharedKey: Uint8Array = this.x25519SharedKey(myPrivateKey, theirPublicKey)
-
-        return this.symmetricEncrypt(message, sharedKey)
+    // keyToWrap length must be in multiples of 16 bytes 
+    public wrapKey(keyEncryptionKey: Uint8Array, keyToWrap: Uint8Array): Uint8Array {
+        if (keyEncryptionKey.length !== 32) {
+            throw new Error('KEK must be 32 bytes')
+        }
+        return aeskw(keyEncryptionKey).encrypt(keyToWrap)
     }
 
-    public asymmetricDecrypt(ciphertext: Uint8Array, myPrivateKey: Uint8Array, theirPublicKey: Uint8Array): Uint8Array {
-
-        const sharedKey: Uint8Array = this.x25519SharedKey(myPrivateKey, theirPublicKey)
-
-        return this.symmetricDecrypt(ciphertext, sharedKey)
+    public unwrapKey(keyEncryptionKey: Uint8Array, wrappedKey: Uint8Array): Uint8Array {
+        if (keyEncryptionKey.length !== 32) {
+            throw new Error('KEK must be 32 bytes')
+        }
+        return aeskw(keyEncryptionKey).decrypt(wrappedKey)
     }
 
-    public asymmetricEncryptAnon(message: Uint8Array, theirPublicKey: Uint8Array): Uint8Array {
+    public symmetricEncrypt(
+        data: Uint8Array,
+        key: Uint8Array,
+        nonce: Uint8Array = undefined!,
+        aad: Uint8Array = undefined!
+    ) {
 
-        const myEphemeralKeypair = this.x25519Keypair()
+        if (nonce === undefined) {
+            nonce = this.randomBytes(NONCE_LENGTH)
+        }
 
-        const sharedKey: Uint8Array = this.x25519SharedKey(myEphemeralKeypair.privateKey, theirPublicKey)
+        if (aad === undefined) {
+            aad = Uint8Array.from([])
+        }
 
-        const ciphertext = this.symmetricEncrypt(message, sharedKey)
-        return new Uint8Array([...myEphemeralKeypair.publicKey, ...ciphertext])
+        const cipher = xchacha20poly1305(key, nonce, aad)
+
+        const cipherText = cipher.encrypt(data)
+
+        const aadLenAsInt = aad.length
+
+        const aadLenAsBytes = this.intToBytes(aadLenAsInt)
+
+        return new Uint8Array([
+            ...nonce,
+            ...aadLenAsBytes,
+            ...(aad ? aad : []),
+            ...cipherText
+        ])
     }
 
-    public asymmetricDecryptAnon(ciphertext: Uint8Array, myPrivateKey: Uint8Array): Uint8Array {
+    public getAADFromCipherText(cipherText: Uint8Array) {
 
-        const theirPublicKey = this.subArray(ciphertext, 0, 32)
+        const nonce = this.subArray(cipherText, 0, NONCE_LENGTH)
+        const aadLenAsBytesLen = 2
+        const aadLenAsBytes = this.subArray(cipherText, nonce.length, aadLenAsBytesLen)
+        const aadLen = this.bytesToInt(aadLenAsBytes)
+        return this.subArray(cipherText, nonce.length + aadLenAsBytesLen, aadLen)
+    }
 
-        const sharedKey: Uint8Array = this.x25519SharedKey(myPrivateKey, theirPublicKey)
+    public symmetricDecrypt(
+        cipherText: Uint8Array,
+        key: Uint8Array
+    ) {
 
-        return this.symmetricDecrypt(this.subArray(ciphertext, 32), sharedKey)
+        const nonce = this.subArray(cipherText, 0, NONCE_LENGTH)
+
+        const aadLenAsBytesLen = 2
+
+        // the length of the aad, represented as a byte array
+        const aadLenAsBytes = this.subArray(cipherText, nonce.length, aadLenAsBytesLen)
+
+        // the length of the aad, represented as an int
+        const aadLen = this.bytesToInt(aadLenAsBytes)
+
+        // the actual aad bytes
+        const aad = this.subArray(cipherText, nonce.length + aadLenAsBytesLen, aadLen)
+
+        const toDecrypt = this.subArray(cipherText, nonce.length + aadLenAsBytesLen + aadLen)
+
+        const cipher = xchacha20poly1305(key, nonce, aad)
+
+        return cipher.decrypt(toDecrypt)
+    }
+
+    public asymmetricEncrypt(
+        clearText: Uint8Array,
+        theirKeyExchangePublicKey: Uint8Array,
+        myUUID: Uint8Array,
+        mySecretSigningKey: Uint8Array
+    ): Uint8Array {
+
+        const { cipherText, sharedSecret } = this.encapsulate(theirKeyExchangePublicKey)
+
+        const preparedSecret = this.simpleHash(sharedSecret, sharedSecret.length)
+
+        const aad = Uint8Array.from([...myUUID, ...cipherText])
+
+        const encrypted = this.symmetricEncrypt(clearText, preparedSecret, undefined!, aad)
+
+        const signature = this.sign(encrypted, mySecretSigningKey)
+
+        return Uint8Array.from([...encrypted, ...signature])
+    }
+
+    public asymmetricDecrypt(
+        cipherText: Uint8Array,
+        myKeyExchangeSecretKey: Uint8Array,
+        theirPublicSigningKey: Uint8Array
+    ): DecryptedAsymmetricMessage {
+
+        const signature = this.subArray(cipherText, cipherText.length - SIGNATURE_LENGTH)
+
+        const cipherTextWithoutSignature = this.subArray(cipherText, 0, cipherText.length - SIGNATURE_LENGTH)
+
+        const isValid = this.verify(cipherTextWithoutSignature, signature, theirPublicSigningKey)
+
+        if (isValid !== true) {
+            throw new Error('invalid signature')
+        }
+
+        const aad = this.getAADFromCipherText(cipherText)
+
+        const theirUUID = this.subArray(aad, 0, 16)
+
+        const mlKemCipherText = this.subArray(aad, 16)
+
+        const sharedKey: Uint8Array = this.decapsulate(mlKemCipherText, myKeyExchangeSecretKey)
+
+        const preparedSecret = this.simpleHash(sharedKey, sharedKey.length)
+
+        return {
+            clearText: this.symmetricDecrypt(cipherTextWithoutSignature, preparedSecret),
+            uuid: theirUUID
+        }
+    }
+
+    public asymmetricEncryptAnon(clearText: Uint8Array, theirKeyExchangePublicKey: Uint8Array): Uint8Array {
+
+        const { cipherText, sharedSecret } = this.encapsulate(theirKeyExchangePublicKey)
+
+        const preparedSecret = this.simpleHash(sharedSecret, sharedSecret.length)
+
+        return this.symmetricEncrypt(clearText, preparedSecret, undefined!, cipherText)
+    }
+
+    public asymmetricDecryptAnon(cipherText: Uint8Array, myKeyExchangeSecretKey: Uint8Array): Uint8Array {
+
+        const aad = this.getAADFromCipherText(cipherText)
+
+        const sharedKey: Uint8Array = this.decapsulate(aad, myKeyExchangeSecretKey)
+
+        const preparedSecret = this.simpleHash(sharedKey, sharedKey.length)
+
+        return this.symmetricDecrypt(cipherText, preparedSecret)
     }
 
     public randomAlphaNumeric(length: number): string {
@@ -119,8 +346,7 @@ class SafeDeposit {
         return Array.from(Array(length), () => keySpace[this.sodium.randombytes_uniform(keySpace.length)]).join('')
     }
 
-    // slow-hash deterministic keying material produced by
-    // passphrase, salt, and hasing Argon2ID algorithm
+    // Slow-hash deterministic keying material produced by passphrase, salt, and Argon2ID hashing algorithm
     public generatePasswordHash(length: number, passphrase: string, salt: Uint8Array, effort: PasswordHashingEffort): Uint8Array {
 
         const opsLimit = effort === PasswordHashingEffort.interactive ? this.sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
@@ -154,45 +380,68 @@ class SafeDeposit {
         }
     }
 
-    public contextFromKeyType(keyType: KeyType) {
+    public contextFromKeyType(keyType: KeyType): string {
         return KeyType[keyType].substring(0, 8).padEnd(8, '_')
     }
 
-    public deriveKey(inputKeyingMaterial: Uint8Array, length: number, keyType: KeyType): Uint8Array {
+    public deriveKey(
+        ikm: Uint8Array,
+        length: number,
+        keyType: KeyType,
+        salt?: Uint8Array
+    ) {
 
-        const ctx: string = this.contextFromKeyType(keyType)
+        const info = this.fromString(this.contextFromKeyType(keyType))
 
-        return this.sodium.crypto_kdf_derive_from_key(length, Number(keyType), ctx, inputKeyingMaterial)
+        return this.deriveKeyBasedKey(ikm, length, info, salt)
     }
 
-    public simpleHash(length: number, value: Uint8Array): Uint8Array {
-        return this.sodium.crypto_generichash(
-            length,
-            value
-        )
+    public subkeysFromPassphraseHash(value: Uint8Array): PassphraseHashSubKeys {
+
+        if (!value || value.length !== 64) {
+            throw new Error('incorrect passphrase hash length')
+        }
+        return {
+            subkey1: this.subArray(value, 0, 32),
+            subkey2: this.subArray(value, 32, 32)
+        }
     }
 
+    public deriveKeyBasedKey(
+        inputKeyingMaterial: Uint8Array,
+        length: number,
+        info: Uint8Array,
+        salt?: Uint8Array
+    ): Uint8Array {
 
-    // simple xchacha20 stream encryption/description with no authentication tag
-    public simpleStream(value: Uint8Array, nonce: Uint8Array, key: Uint8Array): Uint8Array {
-        return this.sodium.crypto_stream_xchacha20_xor(value, nonce, key)
+        const prk = hkdf.extract(sha512, inputKeyingMaterial, salt)
+        return hkdf.expand(sha512, prk, info, length)
     }
 
-    public authenticatedSymmetricStreamEncrypt(message: Uint8Array, additionalData: Uint8Array, nonce: Uint8Array, key: Uint8Array): Uint8Array {
-        return this.sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(message, additionalData, null, nonce, key)
-    }
-
-    public authenticatedSymmetricStreamDescrypt(ciphertext: Uint8Array, additionalData: Uint8Array, nonce: Uint8Array, key: Uint8Array): Uint8Array {
-        return this.sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(null, ciphertext, additionalData, nonce, key)
-    }
-
-    // https://security.stackexchange.com/questions/266915/how-to-use-pynacl-libsodium-for-key-wrap-key-encapsulation
-    public generateMasterQRCode(passphrase: string, effort: PasswordHashingEffort, uuidBytes?: Uint8Array, masterKeyBytes?: Uint8Array): Uint8Array {
+    /**
+     * Generates a QR code for the user, which holds
+     * their UUID, some metadata, and their encrypted
+     * master key.
+     *  
+     * @param passphrase - the user's passphrase
+     * @param effort - how much effort is required for Argon2id hash
+     * @param uuidBytes - 16 CSPRNG bytes to uniquely identify the user 
+     * @param masterKeyBytes - 32 CSPRNG bytes
+     * @param auxiliaryKeyBytes - 16 CSPRNG bytes
+     * @returns - the QR code bytes
+     */
+    public generateMasterQRCode(
+        passphrase: string,
+        effort: PasswordHashingEffort,
+        uuidBytes?: Uint8Array,
+        masterKeyBytes?: Uint8Array,
+        auxiliaryKeyBytes?: Uint8Array,
+    ): Uint8Array {
 
         const uuid = uuidBytes === undefined ? this.randomBytes(16) : uuidBytes
 
         const passphraseHash: Uint8Array = this.generatePasswordHash(
-            32,
+            64,
             passphrase,
             uuid,
             effort
@@ -200,22 +449,19 @@ class SafeDeposit {
 
         const masterKey = masterKeyBytes === undefined ? this.randomBytes(32) : masterKeyBytes
 
-        const authenticationKey = this.deriveKey(passphraseHash, 32, KeyType.wrapAuthentication)
+        const auxiliaryKey = auxiliaryKeyBytes === undefined ? this.randomBytes(16) : auxiliaryKeyBytes
 
-        const encryptionKey = this.deriveKey(passphraseHash, 32, KeyType.wrapEncryption)
-
-        const authTag = this.sodium.crypto_generichash(24, masterKey, authenticationKey)
+        const passphraseHashSubKeys = this.subkeysFromPassphraseHash(passphraseHash)
 
         const wrappedMasterKey = new Uint8Array([
             ...uuid,
             ...[Version.one],
             ...[KeyType.master],
             ...[effort],
-            ...authTag,
-            ...this.simpleStream(masterKey, authTag, encryptionKey)
+            ...this.wrapKey(passphraseHashSubKeys.subkey1, Uint8Array.from([...masterKey, ...auxiliaryKey]))
         ])
 
-        const checksum: Uint8Array = this.sodium.crypto_generichash(3, wrappedMasterKey)
+        const checksum: Uint8Array = this.simpleHash(wrappedMasterKey, 3)
 
         return new Uint8Array([
             ...wrappedMasterKey,
@@ -223,13 +469,136 @@ class SafeDeposit {
         ])
     }
 
-    public generateUser(passphrase: string, effort: PasswordHashingEffort, uuid: Uint8Array = undefined!, masterKey: Uint8Array = undefined!): UserWithCredentialsAndMasterKey {
-        if (masterKey === undefined) {
-            masterKey = safeDeposit.randomBytes(32)
-        }
-        const wrappedMasterKey = safeDeposit.generateMasterQRCode(passphrase, effort, uuid, masterKey)
+    public extractAccountKeyingMaterial(
+        passphrase: string,
+        wrappedMasterKey: Uint8Array
+    ): AccountKeyingMaterial {
 
-        return { masterKey: masterKey, ...safeDeposit.generateCredentials(passphrase, wrappedMasterKey) }
+        const checksum: Uint8Array = this.simpleHash(this.subArray(wrappedMasterKey, 0, 75), 3)
+
+        if (!this.isEqual(this.subArray(wrappedMasterKey, 75, 3), checksum)) {
+            throw new Error('Incorrect checksum')
+        }
+
+        const version: number = wrappedMasterKey[16]
+
+        if (version !== Version.one) {
+            throw new Error('Incorrect version')
+        }
+
+        const keyType: number = wrappedMasterKey[17]
+
+        if (keyType !== KeyType.master) {
+            throw new Error('Incorrect key type')
+        }
+
+        const uuid = this.subArray(wrappedMasterKey, 0, 16)
+
+        const effort = wrappedMasterKey[18]
+
+        if (!Object.values(PasswordHashingEffort).includes(effort)) {
+            throw new Error('Unrecognized password hashing effort')
+        }
+
+        const passphraseHash: Uint8Array = this.generatePasswordHash(
+            64,
+            passphrase,
+            uuid,
+            wrappedMasterKey[18]
+        )
+
+        const passphraseHashSubKeys = this.subkeysFromPassphraseHash(passphraseHash)
+
+        const unwrappedMasterKey = this.unwrapKey(
+            passphraseHashSubKeys.subkey1,
+            this.subArray(wrappedMasterKey, 19, 56)
+        )
+
+        const masterKey = this.subArray(unwrappedMasterKey, 0, 32)
+        const auxiliaryKey = this.subArray(unwrappedMasterKey, 32, 16)
+
+        return {
+            uuid,
+            masterKey,
+            auxiliaryKey,
+            effort,
+            passphraseHash
+        }
+    }
+
+    public keypairHash(secretKey: Uint8Array, publicKey: Uint8Array): Uint8Array {
+        return sha512(Uint8Array.from([...secretKey, ...publicKey]))
+    }
+
+    public generateUserCredentials(passphrase: string, QRCode: Uint8Array): UserWithCredentials {
+
+        const accountKeyingMaterial: AccountKeyingMaterial = this.extractAccountKeyingMaterial(passphrase, QRCode)
+
+        const masterKey: Uint8Array = accountKeyingMaterial.masterKey
+        const auxiliaryKey: Uint8Array = accountKeyingMaterial.auxiliaryKey
+        const passphraseHash: Uint8Array = accountKeyingMaterial.passphraseHash
+
+        const symmetricKey: Uint8Array = this.deriveKey(
+            masterKey,
+            32,
+            KeyType.symmetric,
+            this.subArray(auxiliaryKey, 0, 4)
+        )
+
+        const keyExchangeKeypairSeed: Uint8Array = this.deriveKey(
+            masterKey,
+            64,
+            KeyType.keyExchange,
+            this.subArray(auxiliaryKey, 4, 4)
+
+        )
+        const keyExchangeKeypair = this.keyExchangeKeypair(keyExchangeKeypairSeed)
+        const keyExchangeKeypairHash = this.keypairHash(keyExchangeKeypair.secretKey, keyExchangeKeypair.publicKey)
+
+        const signingKeypairSeed: Uint8Array = this.deriveKey(
+            masterKey,
+            32,
+            KeyType.signing,
+            this.subArray(auxiliaryKey, 8, 4)
+        )
+
+        const signingKeypair = this.signatureKeypair(signingKeypairSeed)
+        const signingKeypairHash = this.keypairHash(signingKeypair.secretKey, signingKeypair.publicKey)
+
+        const passphraseHashSubKeys = this.subkeysFromPassphraseHash(passphraseHash)
+
+        const apiAuthKeypairSeed: Uint8Array = this.deriveKey(
+            passphraseHashSubKeys.subkey2,
+            32,
+            KeyType.apiAuthentication,
+            this.subArray(auxiliaryKey, 12, 4)
+        )
+
+        const apiAuthKeypair = this.signatureKeypair(apiAuthKeypairSeed)
+        const apiAuthKeypairHash = this.keypairHash(apiAuthKeypair.secretKey, apiAuthKeypair.publicKey)
+
+        return {
+            passphrase: passphrase,
+            QRCode: QRCode,
+            ...accountKeyingMaterial,
+            symmetricKey,
+
+            keyExchangeKeypairSeed,
+            keyExchangeKeypair,
+            keyExchangeKeypairHash,
+
+            signingKeypairSeed,
+            signingKeypair,
+            signingKeypairHash,
+
+            apiAuthKeypairSeed,
+            apiAuthKeypair,
+            apiAuthKeypairHash
+        }
+    }
+
+    public simpleHash(value: Uint8Array, length: number, key?: Uint8Array): Uint8Array {
+        return blake2b(value, { dkLen: length, key })
     }
 
     public buildRequestPayload(
@@ -267,7 +636,7 @@ class SafeDeposit {
         absoluteUrl: string,
         requestMethod: string,
         requestPayload: RequestPayload,
-        ed25519PrivateKey: Uint8Array
+        secretKey: Uint8Array
     ): Uint8Array {
 
         if (nonce.length !== 32) {
@@ -283,7 +652,7 @@ class SafeDeposit {
                 requestMethod,
                 requestPayload
             ),
-            ed25519PrivateKey
+            secretKey
         )
     }
 
@@ -294,9 +663,9 @@ class SafeDeposit {
         absoluteUrl: string,
         requestMethod: string,
         requestPayload: RequestPayload,
-        ed25519PublicKey: Uint8Array,
-        signature: Uint8Array)
-        : boolean {
+        publicKey: Uint8Array,
+        signature: Uint8Array
+    ): boolean {
 
         return this.verify(
             this.buildRequestPayload(
@@ -308,214 +677,61 @@ class SafeDeposit {
                 requestPayload
             ),
             signature,
-            ed25519PublicKey
+            publicKey
         )
     }
 
-    public prettyUser(user: UserWithCredentialsAndMasterKey) {
+    public prettyUser(user: UserWithCredentials) {
+
+        const format = (value: Uint8Array): string => {
+            return `${this.toHex(this.subArray(value, 0, 80))}${value.length > 80 ? '...' : '   '} (${value.length} bytes)`
+        }
         const result = {
 
-            uuid: `${this.toHex(user.uuid)} (${user.uuid.length} bytes)`,
+            uuid: format(user.uuid),
 
             passphrase: user.passphrase,
 
-            masterKey: `${this.toHex(user.masterKey)} (${user.masterKey.length} bytes)`,
+            effort: PasswordHashingEffort[user.effort],
 
-            QRCode: `${this.toHex(user.QRCode)} (${user.QRCode.length} bytes)`,
-            symmetricKey: `${this.toHex(user.symmetricKey)} (${user.symmetricKey.length} bytes)`,
+            masterKey: format(user.masterKey),
 
-            ed25519Public: `${this.toHex(user.ed25519Keypair.publicKey)} (${user.ed25519Keypair.publicKey.length} bytes)`,
-            ed25519Private: `${this.toHex(user.ed25519Keypair.privateKey)} (${user.ed25519Keypair.privateKey.length} bytes)`,
+            auxiliaryKey: format(user.auxiliaryKey),
 
-            x25519Public: `${this.toHex(user.x25519Keypair.publicKey)} (${user.x25519Keypair.publicKey.length} bytes)`,
-            x25519Private: `${this.toHex(user.x25519Keypair.privateKey)} (${user.x25519Keypair.privateKey.length} bytes)`,
+            QRCode: format(user.QRCode),
 
-            apiAuthPublic: `${this.toHex(user.apiAuthKeypair.publicKey)} (${user.apiAuthKeypair.publicKey.length} bytes)`,
-            apiAuthPrivate: `${this.toHex(user.apiAuthKeypair.privateKey)} (${user.apiAuthKeypair.privateKey.length} bytes)`,
+            symmetricKey: format(user.symmetricKey),
+
+            keyExchangeKeypairSeed: format(user.keyExchangeKeypairSeed),
+            // keyExchangeKeypairSecretKey: format(user.keyExchangeKeypair.secretKey),
+            // keyExchangeKeypairPublicKey: format(user.keyExchangeKeypair.publicKey),
+            // keyExchangeKeypairHash: format(user.keyExchangeKeypairHash),
+
+            signingKeypairSecretSeed: format(user.signingKeypairSeed),
+            // signingKeypairSecretKey: format(user.signingKeypair.secretKey),
+            // signingKeypairPublicKey: format(user.signingKeypair.publicKey),
+            // signingKeypairHash: format(user.signingKeypairHash),
+
+            apiAuthKeypairSeed: format(user.apiAuthKeypairSeed),
+            // apiAuthKeypairSecretKey: format(user.apiAuthKeypair.secretKey),
+            // apiAuthKeypairPublicKey: format(user.apiAuthKeypair.publicKey),
+            // apiAuthKeypairHash: format(user.apiAuthKeypairHash),
         }
+        console.log('user', user)
         console.table(result)
-    }
-
-    public generateCredentials(passphrase: string, QRCode: Uint8Array): UserWithCredentials {
-
-        const uuid = this.subArray(QRCode, 0, 16)
-
-        const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase, QRCode)
-
-        const masterKey: Uint8Array = masterKeyAndAuthKeypair.masterKey
-
-        const symmetricKey: Uint8Array = this.deriveKey(masterKey, 32, KeyType.symmetric)
-
-        const ed25519Seed: Uint8Array = this.deriveKey(masterKey, 32, KeyType.ed25519)
-        const ed25519Keypair = this.ed25519Keypair(ed25519Seed)
-
-        const x25519Seed: Uint8Array = this.deriveKey(masterKey, 32, KeyType.x25519)
-        const x25519Keypair = this.x25519Keypair(x25519Seed)
-
-        const apiAuthKeypair = masterKeyAndAuthKeypair.apiAuthKeypair
-
-        return {
-            uuid: uuid,
-            passphrase: passphrase,
-            QRCode: QRCode,
-            symmetricKey: symmetricKey,
-            ed25519Keypair: ed25519Keypair,
-            x25519Keypair: x25519Keypair,
-            apiAuthKeypair: apiAuthKeypair
-        }
-    }
-
-    public generateCredentialsWithMasterKey(passphrase: string, QRCode: Uint8Array): UserWithCredentialsAndMasterKey {
-
-        const uuid = this.subArray(QRCode, 0, 16)
-
-        const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase, QRCode)
-
-        const masterKey: Uint8Array = masterKeyAndAuthKeypair.masterKey
-
-        const symmetricKey: Uint8Array = this.deriveKey(masterKey, 32, KeyType.symmetric)
-
-        const ed25519Seed: Uint8Array = this.deriveKey(masterKey, 32, KeyType.ed25519)
-        const ed25519Keypair = this.ed25519Keypair(ed25519Seed)
-
-        const x25519Seed: Uint8Array = this.deriveKey(masterKey, 32, KeyType.x25519)
-        const x25519Keypair = this.x25519Keypair(x25519Seed)
-
-        const apiAuthKeypair = masterKeyAndAuthKeypair.apiAuthKeypair
-
-        return {
-            uuid: uuid,
-            passphrase: passphrase,
-            QRCode: QRCode,
-            masterKey: masterKey,
-            symmetricKey: symmetricKey,
-            ed25519Keypair: ed25519Keypair,
-            x25519Keypair: x25519Keypair,
-            apiAuthKeypair: apiAuthKeypair,
-        }
     }
 
     public updateQRCode(oldPassphrase: string, oldQRCode: Uint8Array, newPassphrase: string, newEffort: PasswordHashingEffort): Uint8Array {
 
         const uuid = this.subArray(oldQRCode, 0, 16)
 
-        const masterKeyAndAuthKeypair: MasterKeyAndApiAuthKeypair = this.extractMasterKeyAndApiAuthKeypairFromQRCode(oldPassphrase, oldQRCode)
+        const accountKeyingMaterial: AccountKeyingMaterial = this.extractAccountKeyingMaterial(oldPassphrase, oldQRCode)
 
-        const masterKey: Uint8Array = masterKeyAndAuthKeypair.masterKey
+        const masterKey: Uint8Array = accountKeyingMaterial.masterKey
 
-        return this.generateMasterQRCode(newPassphrase, newEffort, uuid, masterKey)
-    }
+        const auxiliaryKey: Uint8Array = accountKeyingMaterial.auxiliaryKey
 
-    public extractMasterKeyAndApiAuthKeypairFromQRCode(passphrase: string, wrappedMasterKey: Uint8Array): MasterKeyAndApiAuthKeypair {
-
-        const checksum: Uint8Array = this.sodium.crypto_generichash(3, this.subArray(wrappedMasterKey, 0, 75))
-
-        if (!this.sodium.memcmp(this.subArray(wrappedMasterKey, 75, 3), checksum)) {
-            throw new Error('Incorrect checksum')
-        }
-
-        const version: number = wrappedMasterKey[16]
-
-        if (version !== Version.one) {
-            throw new Error('Incorrect version')
-        }
-
-        const keyType: number = wrappedMasterKey[17]
-
-        if (keyType !== KeyType.master) {
-            throw new Error('Incorrect key type')
-        }
-
-        const uuid = this.subArray(wrappedMasterKey, 0, 16)
-
-        const passphraseHash: Uint8Array = this.generatePasswordHash(
-            32,
-            passphrase,
-            uuid,
-            wrappedMasterKey[18]
-        )
-
-        const authenticationKey = this.deriveKey(passphraseHash, 32, KeyType.wrapAuthentication)
-
-        const encryptionKey = this.deriveKey(passphraseHash, 32, KeyType.wrapEncryption)
-
-        const apiAuthenticationKeypairSeed = this.deriveKey(passphraseHash, 32, KeyType.apiAuthentication)
-
-        const apiAuthenticationKeypair = this.ed25519Keypair(apiAuthenticationKeypairSeed)
-
-        const unwrappedMasterKey = this.simpleStream(
-            this.subArray(wrappedMasterKey, 43, 32),
-            this.subArray(wrappedMasterKey, 19, 24),
-            encryptionKey
-        )
-
-        const authTag = this.sodium.crypto_generichash(24, unwrappedMasterKey, authenticationKey)
-        if (!this.isEqual(authTag, this.subArray(wrappedMasterKey, 19, 24))) {
-            throw new Error('Key authentication failed - incorrect credentials')
-        }
-
-        return {
-            masterKey: unwrappedMasterKey,
-            apiAuthKeypair: apiAuthenticationKeypair
-        }
-    }
-
-    public symmetricEncrypt(message: Uint8Array, key: Uint8Array, nonce: Uint8Array = this.randomBytes(24)) {
-
-        const ciphertext: Uint8Array = this.sodium.crypto_aead_xchacha20poly1305_ietf_encrypt(message, null, null, nonce, key)
-        return new Uint8Array([...nonce, ...ciphertext])
-    }
-
-    public symmetricDecrypt(ciphertext: Uint8Array, key: Uint8Array) {
-
-        return this.sodium.crypto_aead_xchacha20poly1305_ietf_decrypt(
-            null,
-            this.subArray(ciphertext, 24),
-            null,
-            this.subArray(ciphertext, 0, 24),
-            key
-        )
-    }
-
-    public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
-
-        return length === undefined ? value.slice(offset) : value.slice(offset, offset + length)
-    }
-
-    public toHex(value: Uint8Array): string {
-        return this.sodium.to_hex(value)
-    }
-
-    public fromHex(value: string): Uint8Array {
-        return this.sodium.from_hex(value)
-    }
-
-    public toBase64(value: Uint8Array): string {
-        return this.sodium.to_base64(value, this.sodium.base64_variants.ORIGINAL)
-    }
-
-    public fromBase64(value: string): Uint8Array {
-        return this.sodium.from_base64(value, this.sodium.base64_variants.ORIGINAL)
-    }
-
-    public isEqual(one: Uint8Array, two: Uint8Array): boolean {
-        try {
-            return this.sodium.memcmp(one, two)
-        } catch (e) {
-            return false
-        }
-    }
-
-    public fromString(value: string): Uint8Array {
-        return this.sodium.from_string(value)
-    }
-
-    public toString(value: Uint8Array): string {
-        return this.sodium.to_string(value)
-    }
-
-    public randomBytes(length: number): Uint8Array {
-        return this.sodium.randombytes_buf(length)
+        return this.generateMasterQRCode(newPassphrase, newEffort, uuid, masterKey, auxiliaryKey)
     }
 
     public bytesToCanvas(bytes: Uint8Array, canvasId: string, size: number) {

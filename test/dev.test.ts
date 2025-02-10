@@ -1,18 +1,15 @@
 import { test, expect, beforeEach } from 'vitest'
 import safeDeposit from '../src/safeDeposit'
-import { alice, bob, eve, mallory, trent } from '../test/data/users'
-import { UserWithCredentials } from '../src/types'
+
+import { scrypt, scryptAsync } from '@noble/hashes/scrypt'
+
 
 beforeEach(async () => {
     await safeDeposit.init()
 })
 
-test('generate deterministic wrapped master key for eve and then extract it', async () => {
 
+test('x', async () => {
 
-    // const person = alice
-
-    // const userWithCredentialsAndMasterKey = safeDeposit.generateUser(person.passphrase, person.effort, person.uuid, person.masterKey)
-
-    // safeDeposit.prettyUser(userWithCredentialsAndMasterKey)
+    const seed = safeDeposit.randomBytes(64)
 })

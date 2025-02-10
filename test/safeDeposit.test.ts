@@ -1,12 +1,15 @@
-import { test, expect } from 'vitest'
-import safeDeposit, { KeyType } from '../src/safeDeposit'
+import { test, expect, beforeEach } from 'vitest'
+import sd, { KeyType } from './../src/safeDeposit'
+
+beforeEach(async () => {
+    await sd.init()
+})
+
 
 test('random byte generation', async () => {
 
-    await safeDeposit.init()
-
-    const bytes1 = safeDeposit.randomBytes(10)
-    const bytes2 = safeDeposit.randomBytes(10)
+    const bytes1 = sd.randomBytes(10)
+    const bytes2 = sd.randomBytes(10)
 
     expect(bytes1).to.equal(bytes1)
     expect(bytes1.length).toBe(10)
@@ -15,12 +18,9 @@ test('random byte generation', async () => {
 
 test('context from key type', async () => {
 
-    await safeDeposit.init()
-
-    expect(safeDeposit.contextFromKeyType(KeyType.ed25519)).toBe('ed25519_')
-    expect(safeDeposit.contextFromKeyType(KeyType.master)).toBe('master__')
-    expect(safeDeposit.contextFromKeyType(KeyType.symmetric)).toBe('symmetri')
-    expect(safeDeposit.contextFromKeyType(KeyType.wrapAuthentication)).toBe('wrapAuth')
-    expect(safeDeposit.contextFromKeyType(KeyType.wrapEncryption)).toBe('wrapEncr')
-    expect(safeDeposit.contextFromKeyType(KeyType.x25519)).toBe('x25519__')
+    expect(sd.contextFromKeyType(KeyType.apiAuthentication)).toBe('apiAuthe')
+    expect(sd.contextFromKeyType(KeyType.keyExchange)).toBe('keyExcha')
+    expect(sd.contextFromKeyType(KeyType.master)).toBe('master__')
+    expect(sd.contextFromKeyType(KeyType.signing)).toBe('signing_')
+    expect(sd.contextFromKeyType(KeyType.symmetric)).toBe('symmetri')
 })
