@@ -1,7 +1,6 @@
 import { test, expect } from 'vitest'
-import safeDeposit from '../src/safeDeposit'
-import { bob } from '../test/data/users'
-import { UserWithCredentials } from '../src/types'
+import safeDeposit from './../../src/safeDeposit'
+import { bob } from './../../test/data/users'
 
 test('sign a request', async () => {
 
@@ -28,7 +27,7 @@ test('sign a request', async () => {
         url,
         method,
         payload,
-        bob.ed25519Keypair.privateKey
+        bob.signingKeypair.secretKey
     )
 
     const isValidSignature = safeDeposit.verifyRequestSignature(
@@ -38,7 +37,7 @@ test('sign a request', async () => {
         url,
         method,
         payload,
-        bob.ed25519Keypair.publicKey,
+        bob.signingKeypair.publicKey,
         requestSignature
     )
 
