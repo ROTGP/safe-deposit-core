@@ -132,7 +132,7 @@ export class TestUser {
         return safeDeposit.signatureKeypair(this.fromHex(this._signingKeypairSeed))
     }
 
-    public get apiAuthKeypairSeed(): SignatureKeypair {
+    public get apiAuthKeypair(): SignatureKeypair {
         return safeDeposit.signatureKeypair(this.fromHex(this._apiAuthKeypairSeed))
     }
 
