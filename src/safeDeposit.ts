@@ -1,5 +1,5 @@
 
-const _sodium = require('libsodium-wrappers-sumo')
+import _sodium from 'libsodium-wrappers-sumo'
 
 import ssh from 'micro-key-producer/ssh.js'
 
