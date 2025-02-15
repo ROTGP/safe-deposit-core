@@ -5,9 +5,7 @@ import { UserWithCredentials } from './../../src/types'
 
 test('message signing for alice', async () => {
 
-    await sd.init()
-
-    const userWithCredentials: UserWithCredentials = sd.generateUserCredentials(alice.passphrase, alice.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(alice.passphrase, alice.QRCode)
 
     const message = sd.fromString('log-me-in')
 

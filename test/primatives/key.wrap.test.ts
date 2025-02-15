@@ -1,9 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 // https://datatracker.ietf.org/doc/html/rfc3394#page-30
 test('key-wrap (AES-KW)', async () => {

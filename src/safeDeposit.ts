@@ -1,5 +1,5 @@
 
-import _sodium from 'libsodium-wrappers-sumo'
+import { argon2id } from 'hash-wasm'
 
 import ssh from 'micro-key-producer/ssh.js'
 
@@ -37,8 +37,6 @@ import { blake2b } from '@noble/hashes/blake2b'
 
 const NONCE_LENGTH = 24
 const SIGNATURE_LENGTH = 4627
-
-type Sodium = typeof _sodium
 
 // CAUTION - these may NOT be edited
 export enum KeyType {
@@ -101,13 +99,6 @@ export enum PasswordHashingEffort {
 }
 
 class SafeDeposit {
-
-    sodium!: Sodium
-
-    public async init() {
-        await _sodium.ready
-        this.sodium = _sodium
-    }
 
     public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
 
@@ -343,30 +334,42 @@ class SafeDeposit {
     public randomAlphaNumeric(length: number): string {
 
         const keySpace: string = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        return Array.from(Array(length), () => keySpace[this.sodium.randombytes_uniform(keySpace.length)]).join('')
+        return Array.from(Array(length), () => keySpace[this.randomBytes(1)[0] % keySpace.length]).join('')
     }
 
     // Slow-hash deterministic keying material produced by passphrase, salt, and Argon2ID hashing algorithm
-    public generatePasswordHash(length: number, passphrase: string, salt: Uint8Array, effort: PasswordHashingEffort): Uint8Array {
+    public async generatePasswordHash(length: number, passphrase: string, salt: Uint8Array, effort: PasswordHashingEffort): Promise<Uint8Array> {
 
-        const opsLimit = effort === PasswordHashingEffort.interactive ? this.sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE
-            : (effort === PasswordHashingEffort.moderate ?
-                this.sodium.crypto_pwhash_OPSLIMIT_MODERATE
-                : this.sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE)
+        const opsLimits = {
+            [PasswordHashingEffort.interactive]: 2,
+            [PasswordHashingEffort.moderate]: 3,
+            [PasswordHashingEffort.sensitive]: 4,
+        }
 
-        const memLimit = effort === PasswordHashingEffort.interactive ? this.sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE
-            : (effort === PasswordHashingEffort.moderate ?
-                this.sodium.crypto_pwhash_MEMLIMIT_MODERATE
-                : this.sodium.crypto_pwhash_MEMLIMIT_SENSITIVE)
+        const memLimits = {
+            [PasswordHashingEffort.interactive]: 2 ** 26,
+            [PasswordHashingEffort.moderate]: 2 ** 28,
+            [PasswordHashingEffort.sensitive]: 2 ** 30,
+        }
 
-        return this.sodium.crypto_pwhash(
-            length,
-            this.sodium.from_string(passphrase),
+        return await argon2id({
+            password: new TextEncoder().encode(passphrase),
             salt,
-            opsLimit,
-            memLimit,
-            this.sodium.crypto_pwhash_ALG_ARGON2ID13
-        )
+            parallelism: 1,
+            iterations: opsLimits[effort],
+            memorySize: memLimits[effort] / 1024,
+            hashLength: length,
+            outputType: 'binary'
+        })
+
+        // return this.sodium.crypto_pwhash(
+        //     length,
+        //     this.sodium.from_string(passphrase),
+        //     salt,
+        //     opsLimit,
+        //     memLimit,
+        //     this.sodium.crypto_pwhash_ALG_ARGON2ID13
+        // )
     }
 
     public generateOpenSSHKeyPair() {
@@ -430,17 +433,17 @@ class SafeDeposit {
      * @param auxiliaryKeyBytes - 16 CSPRNG bytes
      * @returns - the QR code bytes
      */
-    public generateMasterQRCode(
+    public async generateMasterQRCode(
         passphrase: string,
         effort: PasswordHashingEffort,
         uuidBytes?: Uint8Array,
         masterKeyBytes?: Uint8Array,
         auxiliaryKeyBytes?: Uint8Array,
-    ): Uint8Array {
+    ): Promise<Uint8Array> {
 
         const uuid = uuidBytes === undefined ? this.randomBytes(16) : uuidBytes
 
-        const passphraseHash: Uint8Array = this.generatePasswordHash(
+        const passphraseHash: Uint8Array = await this.generatePasswordHash(
             64,
             passphrase,
             uuid,
@@ -469,10 +472,10 @@ class SafeDeposit {
         ])
     }
 
-    public extractAccountKeyingMaterial(
+    public async extractAccountKeyingMaterial(
         passphrase: string,
         wrappedMasterKey: Uint8Array
-    ): AccountKeyingMaterial {
+    ): Promise<AccountKeyingMaterial> {
 
         const checksum: Uint8Array = this.simpleHash(this.subArray(wrappedMasterKey, 0, 75), 3)
 
@@ -500,7 +503,7 @@ class SafeDeposit {
             throw new Error('Unrecognized password hashing effort')
         }
 
-        const passphraseHash: Uint8Array = this.generatePasswordHash(
+        const passphraseHash: Uint8Array = await this.generatePasswordHash(
             64,
             passphrase,
             uuid,
@@ -530,9 +533,9 @@ class SafeDeposit {
         return sha512(Uint8Array.from([...secretKey, ...publicKey]))
     }
 
-    public generateUserCredentials(passphrase: string, QRCode: Uint8Array): UserWithCredentials {
+    public async generateUserCredentials(passphrase: string, QRCode: Uint8Array): Promise<UserWithCredentials> {
 
-        const accountKeyingMaterial: AccountKeyingMaterial = this.extractAccountKeyingMaterial(passphrase, QRCode)
+        const accountKeyingMaterial: AccountKeyingMaterial = await this.extractAccountKeyingMaterial(passphrase, QRCode)
 
         const masterKey: Uint8Array = accountKeyingMaterial.masterKey
         const auxiliaryKey: Uint8Array = accountKeyingMaterial.auxiliaryKey
@@ -721,17 +724,17 @@ class SafeDeposit {
         console.table(result)
     }
 
-    public updateQRCode(oldPassphrase: string, oldQRCode: Uint8Array, newPassphrase: string, newEffort: PasswordHashingEffort): Uint8Array {
+    public async updateQRCode(oldPassphrase: string, oldQRCode: Uint8Array, newPassphrase: string, newEffort: PasswordHashingEffort): Promise<Uint8Array> {
 
         const uuid = this.subArray(oldQRCode, 0, 16)
 
-        const accountKeyingMaterial: AccountKeyingMaterial = this.extractAccountKeyingMaterial(oldPassphrase, oldQRCode)
+        const accountKeyingMaterial: AccountKeyingMaterial = await this.extractAccountKeyingMaterial(oldPassphrase, oldQRCode)
 
         const masterKey: Uint8Array = accountKeyingMaterial.masterKey
 
         const auxiliaryKey: Uint8Array = accountKeyingMaterial.auxiliaryKey
 
-        return this.generateMasterQRCode(newPassphrase, newEffort, uuid, masterKey, auxiliaryKey)
+        return await this.generateMasterQRCode(newPassphrase, newEffort, uuid, masterKey, auxiliaryKey)
     }
 
     public bytesToCanvas(bytes: Uint8Array, canvasId: string, size: number) {

@@ -4,8 +4,6 @@ import { alice } from './../../test/data/users'
 
 test('private symmetric encryption and decryption with fixed nonce', async () => {
 
-    await sd.init()
-
     const messageTxt: string = 'this is my $upser secre+ Mess@ge'
     const message: Uint8Array = sd.fromString(messageTxt)
 
@@ -29,8 +27,6 @@ test('private symmetric encryption and decryption with fixed nonce', async () =>
 })
 
 test('private symmetric encryption and decryption with generated nonce', async () => {
-
-    await sd.init()
 
     const messageTxt: string = 'Some other message'
     const message: Uint8Array = sd.fromString(messageTxt)

@@ -1,19 +1,15 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from './../../../src/safeDeposit'
 import { alice } from './../../../test/data/users'
 import { AccountKeyingMaterial, UserWithCredentials } from './../../../src/types'
 
-beforeEach(async () => {
-    await sd.init()
-})
-
 test('generate deterministic wrapped master key for alice and then extract it', async () => {
 
-    const wrappedMasterKey = sd.generateMasterQRCode(alice.passphrase, alice.effort, alice.uuid, alice.masterKey, alice.auxiliaryKey)
+    const wrappedMasterKey = await sd.generateMasterQRCode(alice.passphrase, alice.effort, alice.uuid, alice.masterKey, alice.auxiliaryKey)
 
     expect(wrappedMasterKey).toEqual(alice.QRCode)
 
-    const accountKeyingMaterial: AccountKeyingMaterial = sd.extractAccountKeyingMaterial(alice.passphrase, wrappedMasterKey)
+    const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(alice.passphrase, wrappedMasterKey)
 
     expect(accountKeyingMaterial.uuid).toEqual(alice.uuid)
     expect(accountKeyingMaterial.effort).toEqual(alice.effort)
@@ -24,7 +20,7 @@ test('generate deterministic wrapped master key for alice and then extract it', 
 test('generate user with credentials for alice', async () => {
 
 
-    const userWithCredentials: UserWithCredentials = sd.generateUserCredentials(alice.passphrase, alice.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(alice.passphrase, alice.QRCode)
     expect(userWithCredentials.symmetricKey).toEqual(alice.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)

@@ -1,19 +1,15 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from './../../../src/safeDeposit'
 import { eve } from './../../../test/data/users'
 import { AccountKeyingMaterial, UserWithCredentials } from './../../../src/types'
 
-beforeEach(async () => {
-    await sd.init()
-})
-
 test('generate deterministic wrapped master key for eve and then extract it', async () => {
 
-    const wrappedMasterKey = sd.generateMasterQRCode(eve.passphrase, eve.effort, eve.uuid, eve.masterKey, eve.auxiliaryKey)
+    const wrappedMasterKey = await sd.generateMasterQRCode(eve.passphrase, eve.effort, eve.uuid, eve.masterKey, eve.auxiliaryKey)
 
     expect(wrappedMasterKey).toEqual(eve.QRCode)
 
-    const accountKeyingMaterial: AccountKeyingMaterial = sd.extractAccountKeyingMaterial(eve.passphrase, wrappedMasterKey)
+    const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(eve.passphrase, wrappedMasterKey)
 
     expect(accountKeyingMaterial.uuid).toEqual(eve.uuid)
     expect(accountKeyingMaterial.effort).toEqual(eve.effort)
@@ -24,7 +20,7 @@ test('generate deterministic wrapped master key for eve and then extract it', as
 test('generate user with credentials for eve', async () => {
 
 
-    const userWithCredentials: UserWithCredentials = sd.generateUserCredentials(eve.passphrase, eve.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(eve.passphrase, eve.QRCode)
     expect(userWithCredentials.symmetricKey).toEqual(eve.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)

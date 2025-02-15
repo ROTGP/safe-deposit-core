@@ -1,10 +1,5 @@
-import { test, expect, beforeEach, describe } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from '../../src/safeDeposit'
-import { sha256 } from '@noble/hashes/sha256'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 test('sign and verify (ML-DSA)', async () => {
 

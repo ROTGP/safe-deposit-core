@@ -1,9 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 // https://github.com/brycx/Test-Vector-Generation/blob/master/HKDF/hkdf-hmac-sha2-test-vectors.md
 test('key derivation (HKDF-Sha512)', async () => {
