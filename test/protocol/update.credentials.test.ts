@@ -1,19 +1,15 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd, { PasswordHashingEffort } from './../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 test('the updating of the credentials of a user', async () => {
 
     const alicePasshphrase = 'alice password'
-    const aliceQRCode = sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
-    const alice = sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
+    const aliceQRCode = await sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
+    const alice = await sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
 
     const newPassphrase = 'abc123'
-    const newQRCode = sd.updateQRCode(alicePasshphrase, aliceQRCode, newPassphrase, PasswordHashingEffort.moderate)
-    const updatedAlice = sd.generateUserCredentials(newPassphrase, newQRCode)
+    const newQRCode = await sd.updateQRCode(alicePasshphrase, aliceQRCode, newPassphrase, PasswordHashingEffort.moderate)
+    const updatedAlice = await sd.generateUserCredentials(newPassphrase, newQRCode)
 
     // same
     expect(alice.uuid).toEqual(updatedAlice.uuid)

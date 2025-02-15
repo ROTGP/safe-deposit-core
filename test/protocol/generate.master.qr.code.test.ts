@@ -1,9 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd, { PasswordHashingEffort } from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 test('master QR code generation with explicit values', async () => {
 
@@ -15,9 +11,9 @@ test('master QR code generation with explicit values', async () => {
 
     const effort = PasswordHashingEffort.interactive
 
-    const masterQRCode = sd.generateMasterQRCode(passphrase, effort, uuid, masterKey, auxiliaryKey)
+    const masterQRCode = await sd.generateMasterQRCode(passphrase, effort, uuid, masterKey, auxiliaryKey)
 
-    const extracted = sd.extractAccountKeyingMaterial(passphrase, masterQRCode)
+    const extracted = await sd.extractAccountKeyingMaterial(passphrase, masterQRCode)
 
     expect(masterQRCode).toHaveLength(78)
     expect(uuid).toEqual(extracted.uuid)
@@ -30,8 +26,8 @@ test('master QR code generation (blind)', async () => {
 
     const passphrase = 'RaiñbowT@ble_7!'
 
-    const masterQRCode = sd.generateMasterQRCode(passphrase, PasswordHashingEffort.interactive)
-    const extracted = sd.extractAccountKeyingMaterial(passphrase, masterQRCode)
+    const masterQRCode = await sd.generateMasterQRCode(passphrase, PasswordHashingEffort.interactive)
+    const extracted = await sd.extractAccountKeyingMaterial(passphrase, masterQRCode)
 
     expect(masterQRCode).toHaveLength(78)
     expect(extracted.uuid).toHaveLength(16)

@@ -4,8 +4,6 @@ import { bob } from './../../test/data/users'
 
 test('sign a request', async () => {
 
-    await safeDeposit.init()
-
     const timestamp = Date.now()
 
     const nonce = safeDeposit.randomBytes(32)

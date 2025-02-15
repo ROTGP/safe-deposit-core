@@ -4,8 +4,6 @@ import { alice, bob } from './../../test/data/users'
 
 test('asymmetric encryption for alice and bob', async () => {
 
-    await sd.init()
-
     const messageTxt = "I'm sorry Alice, the end is near"
     const message: Uint8Array = sd.fromString(messageTxt)
 
@@ -27,8 +25,6 @@ test('asymmetric encryption for alice and bob', async () => {
 })
 
 test('anon asymmetric encryption for alice and bob', async () => {
-
-    await sd.init()
 
     const messageTxt = "I'm sorry Alice, the end is near"
     const message: Uint8Array = sd.fromString(messageTxt)

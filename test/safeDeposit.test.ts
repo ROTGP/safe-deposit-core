@@ -1,10 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd, { KeyType } from './../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
-
 
 test('random byte generation', async () => {
 

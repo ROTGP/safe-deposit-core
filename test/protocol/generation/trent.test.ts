@@ -1,19 +1,15 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from './../../../src/safeDeposit'
 import { trent } from './../../../test/data/users'
 import { AccountKeyingMaterial, UserWithCredentials } from './../../../src/types'
 
-beforeEach(async () => {
-    await sd.init()
-})
-
 test('generate deterministic wrapped master key for trent and then extract it', async () => {
 
-    const wrappedMasterKey = sd.generateMasterQRCode(trent.passphrase, trent.effort, trent.uuid, trent.masterKey, trent.auxiliaryKey)
+    const wrappedMasterKey = await sd.generateMasterQRCode(trent.passphrase, trent.effort, trent.uuid, trent.masterKey, trent.auxiliaryKey)
 
     expect(wrappedMasterKey).toEqual(trent.QRCode)
 
-    const accountKeyingMaterial: AccountKeyingMaterial = sd.extractAccountKeyingMaterial(trent.passphrase, wrappedMasterKey)
+    const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(trent.passphrase, wrappedMasterKey)
 
     expect(accountKeyingMaterial.uuid).toEqual(trent.uuid)
     expect(accountKeyingMaterial.effort).toEqual(trent.effort)
@@ -24,7 +20,7 @@ test('generate deterministic wrapped master key for trent and then extract it', 
 test('generate user with credentials for trent', async () => {
 
 
-    const userWithCredentials: UserWithCredentials = sd.generateUserCredentials(trent.passphrase, trent.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(trent.passphrase, trent.QRCode)
     expect(userWithCredentials.symmetricKey).toEqual(trent.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)

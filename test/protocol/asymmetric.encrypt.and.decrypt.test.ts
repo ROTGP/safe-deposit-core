@@ -1,15 +1,11 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd, { PasswordHashingEffort } from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
 
 test('anon asymmetric encryption', async () => {
 
     const alicePasshphrase = 'alice password'
-    const aliceQRCode = sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
-    const aliceCredentials = sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
+    const aliceQRCode = await sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
+    const aliceCredentials = await sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
 
     const message = 'Hi Alice, the code you requested is: QTM-2412-XPQA. Best, Bob'
     const anonMessageFromBobToAlice = sd.asymmetricEncryptAnon(
@@ -40,12 +36,12 @@ test('anon asymmetric encryption', async () => {
 test('signed asymmetric encryption', async () => {
 
     const alicePasshphrase = 'alice password'
-    const aliceQRCode = sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
-    const aliceCredentials = sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
+    const aliceQRCode = await sd.generateMasterQRCode(alicePasshphrase, PasswordHashingEffort.interactive)
+    const aliceCredentials = await sd.generateUserCredentials(alicePasshphrase, aliceQRCode)
 
     const bobPasshphrase = 'bob password'
-    const bobQRCode = sd.generateMasterQRCode(bobPasshphrase, PasswordHashingEffort.interactive)
-    const bobCredentials = sd.generateUserCredentials(bobPasshphrase, bobQRCode)
+    const bobQRCode = await sd.generateMasterQRCode(bobPasshphrase, PasswordHashingEffort.interactive)
+    const bobCredentials = await sd.generateUserCredentials(bobPasshphrase, bobQRCode)
 
     const message = 'Hi Alice, the code you requested is: QTM-2412-XPQA. Best, Bob'
     const signedMessageFromBobToAlice = sd.asymmetricEncrypt(

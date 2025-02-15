@@ -1,9 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init
-})
 
 test('int to bytes and bytes to int', async () => {
 

@@ -1,10 +1,5 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from '../../src/safeDeposit'
-
-beforeEach(async () => {
-    await sd.init()
-})
-
 
 // https://datatracker.ietf.org/doc/html/draft-arciszewski-xchacha-03#page-9
 test('authenticated encryption and decryption (xchacha20-poly1305)', async () => {

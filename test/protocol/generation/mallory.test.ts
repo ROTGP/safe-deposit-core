@@ -1,19 +1,15 @@
-import { test, expect, beforeEach } from 'vitest'
+import { test, expect } from 'vitest'
 import sd from './../../../src/safeDeposit'
 import { mallory } from './../../../test/data/users'
 import { AccountKeyingMaterial, UserWithCredentials } from './../../../src/types'
 
-beforeEach(async () => {
-    await sd.init()
-})
-
 test('generate deterministic wrapped master key for mallory and then extract it', async () => {
 
-    const wrappedMasterKey = sd.generateMasterQRCode(mallory.passphrase, mallory.effort, mallory.uuid, mallory.masterKey, mallory.auxiliaryKey)
+    const wrappedMasterKey = await sd.generateMasterQRCode(mallory.passphrase, mallory.effort, mallory.uuid, mallory.masterKey, mallory.auxiliaryKey)
 
     expect(wrappedMasterKey).toEqual(mallory.QRCode)
 
-    const accountKeyingMaterial: AccountKeyingMaterial = sd.extractAccountKeyingMaterial(mallory.passphrase, wrappedMasterKey)
+    const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(mallory.passphrase, wrappedMasterKey)
 
     expect(accountKeyingMaterial.uuid).toEqual(mallory.uuid)
     expect(accountKeyingMaterial.effort).toEqual(mallory.effort)
@@ -24,7 +20,7 @@ test('generate deterministic wrapped master key for mallory and then extract it'
 test('generate user with credentials for mallory', async () => {
 
 
-    const userWithCredentials: UserWithCredentials = sd.generateUserCredentials(mallory.passphrase, mallory.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(mallory.passphrase, mallory.QRCode)
     expect(userWithCredentials.symmetricKey).toEqual(mallory.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)
