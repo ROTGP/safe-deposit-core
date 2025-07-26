@@ -7,7 +7,7 @@ test('generate deterministic wrapped master key for alice and then extract it', 
 
     const wrappedMasterKey = await sd.generateMasterQRCode(alice.passphrase, alice.effort, alice.uuid, alice.masterKey, alice.auxiliaryKey)
 
-    expect(wrappedMasterKey).toEqual(alice.QRCode)
+    expect(wrappedMasterKey).toEqual(alice.masterQRCode)
 
     const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(alice.passphrase, wrappedMasterKey)
 
@@ -19,8 +19,7 @@ test('generate deterministic wrapped master key for alice and then extract it', 
 
 test('generate user with credentials for alice', async () => {
 
-
-    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(alice.passphrase, alice.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(alice.passphrase, alice.masterQRCode)
     expect(userWithCredentials.symmetricKey).toEqual(alice.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)
@@ -31,4 +30,6 @@ test('generate user with credentials for alice', async () => {
 
     const apiAuthKeypairHash = sd.keypairHash(userWithCredentials.apiAuthKeypair.secretKey, userWithCredentials.apiAuthKeypair.publicKey)
     expect(apiAuthKeypairHash).toEqual(sd.fromHex('68a35aa1881871ba6fd42aa66036c836f25b70695e9bdd534668c886e58c441c55962702c9507c9daabca71c29cf7b6410050912e77a7ad73128513b04c498dd'))
+
+    expect(userWithCredentials.identity).toEqual(alice.identity)
 })

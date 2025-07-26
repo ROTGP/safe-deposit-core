@@ -7,7 +7,7 @@ test('generate deterministic wrapped master key for eve and then extract it', as
 
     const wrappedMasterKey = await sd.generateMasterQRCode(eve.passphrase, eve.effort, eve.uuid, eve.masterKey, eve.auxiliaryKey)
 
-    expect(wrappedMasterKey).toEqual(eve.QRCode)
+    expect(wrappedMasterKey).toEqual(eve.masterQRCode)
 
     const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(eve.passphrase, wrappedMasterKey)
 
@@ -19,8 +19,7 @@ test('generate deterministic wrapped master key for eve and then extract it', as
 
 test('generate user with credentials for eve', async () => {
 
-
-    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(eve.passphrase, eve.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(eve.passphrase, eve.masterQRCode)
     expect(userWithCredentials.symmetricKey).toEqual(eve.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)
@@ -31,4 +30,6 @@ test('generate user with credentials for eve', async () => {
 
     const apiAuthKeypairHash = sd.keypairHash(userWithCredentials.apiAuthKeypair.secretKey, userWithCredentials.apiAuthKeypair.publicKey)
     expect(apiAuthKeypairHash).toEqual(sd.fromHex('74d12e6996a14bc7daabf632c1a0b8a11a08c6fa63af0506821ec75cc002e7f3835165256c4de755a61926b6ad7668bcb7c39d36d7e155ea0a4cf109a105b1b5'))
+
+    expect(userWithCredentials.identity).toEqual(eve.identity)
 })

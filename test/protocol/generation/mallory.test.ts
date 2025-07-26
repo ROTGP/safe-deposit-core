@@ -7,7 +7,7 @@ test('generate deterministic wrapped master key for mallory and then extract it'
 
     const wrappedMasterKey = await sd.generateMasterQRCode(mallory.passphrase, mallory.effort, mallory.uuid, mallory.masterKey, mallory.auxiliaryKey)
 
-    expect(wrappedMasterKey).toEqual(mallory.QRCode)
+    expect(wrappedMasterKey).toEqual(mallory.masterQRCode)
 
     const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(mallory.passphrase, wrappedMasterKey)
 
@@ -19,8 +19,7 @@ test('generate deterministic wrapped master key for mallory and then extract it'
 
 test('generate user with credentials for mallory', async () => {
 
-
-    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(mallory.passphrase, mallory.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(mallory.passphrase, mallory.masterQRCode)
     expect(userWithCredentials.symmetricKey).toEqual(mallory.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)
@@ -31,4 +30,6 @@ test('generate user with credentials for mallory', async () => {
 
     const apiAuthKeypairHash = sd.keypairHash(userWithCredentials.apiAuthKeypair.secretKey, userWithCredentials.apiAuthKeypair.publicKey)
     expect(apiAuthKeypairHash).toEqual(sd.fromHex('f9f1f660c7f7d8adcabd3f70ec9cc6348009d52edc9bb7c82449729a9e437fdc6fb31e6d487d6944475b01c7933d94ea60e3c551a4f478071b5c57241ba17250'))
+
+    expect(userWithCredentials.identity).toEqual(mallory.identity)
 })
