@@ -28,7 +28,7 @@ test('the updating of the credentials of a user', async () => {
 
     // different
     expect(alice.passphrase).not.toEqual(newPassphrase)
-    expect(alice.QRCode).not.toEqual(updatedAlice.QRCode)
+    expect(alice.masterQRCode).not.toEqual(updatedAlice.masterQRCode)
 
     expect(alice.apiAuthKeypairSeed).not.toEqual(updatedAlice.apiAuthKeypairSeed)
     expect(alice.apiAuthKeypair.secretKey).not.toEqual(updatedAlice.apiAuthKeypair.secretKey)

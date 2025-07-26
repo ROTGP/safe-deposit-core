@@ -7,7 +7,7 @@ test('generate deterministic wrapped master key for bob and then extract it', as
 
     const wrappedMasterKey = await sd.generateMasterQRCode(bob.passphrase, bob.effort, bob.uuid, bob.masterKey, bob.auxiliaryKey)
 
-    expect(wrappedMasterKey).toEqual(bob.QRCode)
+    expect(wrappedMasterKey).toEqual(bob.masterQRCode)
 
     const accountKeyingMaterial: AccountKeyingMaterial = await sd.extractAccountKeyingMaterial(bob.passphrase, wrappedMasterKey)
 
@@ -19,8 +19,7 @@ test('generate deterministic wrapped master key for bob and then extract it', as
 
 test('generate user with credentials for bob', async () => {
 
-
-    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(bob.passphrase, bob.QRCode)
+    const userWithCredentials: UserWithCredentials = await sd.generateUserCredentials(bob.passphrase, bob.masterQRCode)
     expect(userWithCredentials.symmetricKey).toEqual(bob.symmetricKey)
 
     const keyExchangeKeypairHash = sd.keypairHash(userWithCredentials.keyExchangeKeypair.secretKey, userWithCredentials.keyExchangeKeypair.publicKey)
@@ -31,4 +30,6 @@ test('generate user with credentials for bob', async () => {
 
     const apiAuthKeypairHash = sd.keypairHash(userWithCredentials.apiAuthKeypair.secretKey, userWithCredentials.apiAuthKeypair.publicKey)
     expect(apiAuthKeypairHash).toEqual(sd.fromHex('9d05662a132aa2a5b24b167882a64bb48ce2f3416dd9a1ed7b7264bad8dbe493728eaa04b6ef436a0b7c93246576eec33667e11ead99e054fb9b73365e5b275a'))
+
+    expect(userWithCredentials.identity).toEqual(bob.identity)
 })

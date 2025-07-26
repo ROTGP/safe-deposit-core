@@ -68,7 +68,13 @@ export enum KeyType {
      * For generating a ML-DSA keypair, which is used for signing
      * authenticated API requests.
      */
-    apiAuthentication = 5
+    apiAuthentication = 5,
+
+    /**
+     * Identity key, which represents; a hash of the user's UUID,
+     * their key exchange public key, and their signing public key 
+     */
+    identity = 6
 }
 
 // CAUTION - these may NOT be edited
@@ -99,6 +105,12 @@ export enum PasswordHashingEffort {
 }
 
 class SafeDeposit {
+
+    private readonly version: Version
+
+    constructor() {
+        this.version = Version.one
+    }
 
     public subArray(value: Uint8Array, offset: number, length: number = undefined!): Uint8Array {
 
@@ -343,13 +355,13 @@ class SafeDeposit {
         const opsLimits = {
             [PasswordHashingEffort.interactive]: 2,
             [PasswordHashingEffort.moderate]: 3,
-            [PasswordHashingEffort.sensitive]: 4,
+            [PasswordHashingEffort.sensitive]: 4
         }
 
         const memLimits = {
             [PasswordHashingEffort.interactive]: 2 ** 26,
             [PasswordHashingEffort.moderate]: 2 ** 28,
-            [PasswordHashingEffort.sensitive]: 2 ** 30,
+            [PasswordHashingEffort.sensitive]: 2 ** 30
         }
 
         return await argon2id({
@@ -361,15 +373,6 @@ class SafeDeposit {
             hashLength: length,
             outputType: 'binary'
         })
-
-        // return this.sodium.crypto_pwhash(
-        //     length,
-        //     this.sodium.from_string(passphrase),
-        //     salt,
-        //     opsLimit,
-        //     memLimit,
-        //     this.sodium.crypto_pwhash_ALG_ARGON2ID13
-        // )
     }
 
     public generateOpenSSHKeyPair() {
@@ -458,7 +461,7 @@ class SafeDeposit {
 
         const wrappedMasterKey = new Uint8Array([
             ...uuid,
-            ...[Version.one],
+            ...[this.version],
             ...[KeyType.master],
             ...[effort],
             ...this.wrapKey(passphraseHashSubKeys.subkey1, Uint8Array.from([...masterKey, ...auxiliaryKey]))
@@ -472,20 +475,46 @@ class SafeDeposit {
         ])
     }
 
+    public generateIdentityQrCode = (
+        uuid: Uint8Array,
+        keyExchangePublicKey: Uint8Array,
+        signingPublicKey: Uint8Array
+    ) => {
+        const identify = this.identityHash(uuid, keyExchangePublicKey, signingPublicKey)
+        const identityQrCode = new Uint8Array([
+            ...uuid,
+            ...[this.version],
+            ...[KeyType.identity],
+            ...identify
+        ])
+
+        const checksum: Uint8Array = this.simpleHash(identityQrCode, 3)
+
+        return new Uint8Array([
+            ...identityQrCode,
+            ...checksum
+        ])
+    }
+
+    public QRChecksumIsValid = (wrappedMasterKey: Uint8Array): boolean => {
+
+        const checksum: Uint8Array = this.simpleHash(this.subArray(wrappedMasterKey, 0, 75), 3)
+
+        return this.isEqual(this.subArray(wrappedMasterKey, 75, 3), checksum)
+    }
+
     public async extractAccountKeyingMaterial(
         passphrase: string,
         wrappedMasterKey: Uint8Array
     ): Promise<AccountKeyingMaterial> {
 
-        const checksum: Uint8Array = this.simpleHash(this.subArray(wrappedMasterKey, 0, 75), 3)
-
-        if (!this.isEqual(this.subArray(wrappedMasterKey, 75, 3), checksum)) {
+        if (!this.QRChecksumIsValid(wrappedMasterKey)) {
             throw new Error('Incorrect checksum')
         }
 
         const version: number = wrappedMasterKey[16]
 
-        if (version !== Version.one) {
+        if (version !== this.version) {
             throw new Error('Incorrect version')
         }
 
@@ -533,9 +562,13 @@ class SafeDeposit {
         return sha512(Uint8Array.from([...secretKey, ...publicKey]))
     }
 
-    public async generateUserCredentials(passphrase: string, QRCode: Uint8Array): Promise<UserWithCredentials> {
+    public identityHash(uuid: Uint8Array, keyExchangeKeypairPublicKey: Uint8Array, signatureKeypairPublicKey: Uint8Array): Uint8Array {
+        return sha512(Uint8Array.from([...uuid, ...keyExchangeKeypairPublicKey, ...signatureKeypairPublicKey]))
+    }
 
-        const accountKeyingMaterial: AccountKeyingMaterial = await this.extractAccountKeyingMaterial(passphrase, QRCode)
+    public async generateUserCredentials(passphrase: string, masterQRCode: Uint8Array): Promise<UserWithCredentials> {
+
+        const accountKeyingMaterial: AccountKeyingMaterial = await this.extractAccountKeyingMaterial(passphrase, masterQRCode)
 
         const masterKey: Uint8Array = accountKeyingMaterial.masterKey
         const auxiliaryKey: Uint8Array = accountKeyingMaterial.auxiliaryKey
@@ -580,9 +613,13 @@ class SafeDeposit {
         const apiAuthKeypair = this.signatureKeypair(apiAuthKeypairSeed)
         const apiAuthKeypairHash = this.keypairHash(apiAuthKeypair.secretKey, apiAuthKeypair.publicKey)
 
+        const identity = this.identityHash(accountKeyingMaterial.uuid, keyExchangeKeypair.publicKey, signingKeypair.publicKey)
+
+        const identityQRCode = this.generateIdentityQrCode(accountKeyingMaterial.uuid, keyExchangeKeypair.publicKey, signingKeypair.publicKey)
+
         return {
             passphrase: passphrase,
-            QRCode: QRCode,
+            masterQRCode: masterQRCode,
             ...accountKeyingMaterial,
             symmetricKey,
 
@@ -596,7 +633,10 @@ class SafeDeposit {
 
             apiAuthKeypairSeed,
             apiAuthKeypair,
-            apiAuthKeypairHash
+            apiAuthKeypairHash,
+
+            identity,
+            identityQRCode
         }
     }
 
@@ -701,7 +741,7 @@ class SafeDeposit {
 
             auxiliaryKey: format(user.auxiliaryKey),
 
-            QRCode: format(user.QRCode),
+            masterQRCode: format(user.masterKey),
 
             symmetricKey: format(user.symmetricKey),
 
@@ -751,6 +791,18 @@ class SafeDeposit {
             })
     }
 
+    public async bytesToDataUrl(bytes: Uint8Array, size: number): Promise<string> {
+
+        const segments: QRCodeSegment[] = [{ data: bytes, mode: 'byte' }]
+
+        return await QRCode.toDataURL(
+            segments,
+            {
+                width: size,
+                errorCorrectionLevel: 'low'
+            })
+    }
+
     public async bytesToImg(bytes: Uint8Array, size: number): Promise<HTMLImageElement> {
 
         const segments: QRCodeSegment[] = [{ data: bytes, mode: 'byte' }]
@@ -790,6 +842,41 @@ class SafeDeposit {
         } catch (e) {
             return undefined
         }
+    }
+
+    public passwordEntropy(value: string): number {
+
+        const calcEntropy = (charset: number, length: number): number =>
+            Math.round(length * Math.log(charset) / Math.LN2)
+
+        const stdCharsets = [{
+            name: 'lowercase',
+            re: /[a-z]/, // abcdefghijklmnopqrstuvwxyz
+            length: 26
+        }, {
+            name: 'uppercase',
+            re: /[A-Z]/, // ABCDEFGHIJKLMNOPQRSTUVWXYZ
+            length: 26
+        }, {
+            name: 'numbers',
+            re: /[0-9]/, // 1234567890
+            length: 10
+        }, {
+            name: 'symbols',
+            re: /[^a-zA-Z0-9]/, //  !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ (and any other)
+            length: 33
+        }]
+
+        const calcCharsetLengthWith = (charsets: any) =>
+            (string: any) => charsets.reduce((length: any, charset: any) =>
+                length + (charset.re.test(string) ? charset.length : 0), 0)
+
+        const calcCharsetLength = calcCharsetLengthWith(stdCharsets)
+
+        const passwordEntropy = (string: any) =>
+            string ? calcEntropy(calcCharsetLength(string), string.length) : 0
+
+        return passwordEntropy(value)
     }
 }
 

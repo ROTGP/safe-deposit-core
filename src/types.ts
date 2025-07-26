@@ -10,7 +10,7 @@ export type UnauthenticatedUser = {
     passphrase: string
 
     // 78 bytes - wrapped masterKey + metadata
-    QRCode: Uint8Array
+    masterQRCode: Uint8Array
 }
 
 /**
@@ -46,6 +46,10 @@ export type UserWithCredentials = UnauthenticatedUser & AccountKeyingMaterial & 
     signingKeypair: SignatureKeypair
     signingKeypairHash: Uint8Array
 
+    // hash of UUID, keyExchangeKeypair.pubKey and signingKeypair.pubKey
+    identity: Uint8Array
+    identityQRCode: Uint8Array
+
     apiAuthKeypairSeed: Uint8Array
     apiAuthKeypair: SignatureKeypair
     apiAuthKeypairHash: Uint8Array
@@ -59,11 +63,12 @@ export class TestUser {
     private _effort: number
     private _masterKey: string
     private _auxiliaryKey: string
-    private _QRCode: string
+    private _masterQRCode: string
     private _symmetricKey: string
     private _keyExchangeKeypairSeed: string
     private _signingKeypairSeed: string
     private _apiAuthKeypairSeed: string
+    private _identity: string
     private _emailAddresses: string[]
 
     constructor(
@@ -72,11 +77,12 @@ export class TestUser {
         effort: number,
         masterKey: string,
         auxiliaryKey: string,
-        QRCode: string,
+        masterQRCode: string,
         symmetricKey: string,
         keyExchangeKeypairSeed: string,
         signingKeypairSeed: string,
         apiAuthKeypairSeed: string,
+        identity: string,
         emailAddresses: string[]
     ) {
         this._uuid = uuid
@@ -84,11 +90,12 @@ export class TestUser {
         this._effort = effort
         this._masterKey = masterKey
         this._auxiliaryKey = auxiliaryKey
-        this._QRCode = QRCode
+        this._masterQRCode = masterQRCode
         this._symmetricKey = symmetricKey
         this._keyExchangeKeypairSeed = keyExchangeKeypairSeed
         this._signingKeypairSeed = signingKeypairSeed
         this._apiAuthKeypairSeed = apiAuthKeypairSeed
+        this._identity = identity
         this._emailAddresses = emailAddresses
     }
 
@@ -116,8 +123,8 @@ export class TestUser {
         return this.fromHex(this._auxiliaryKey)
     }
 
-    public get QRCode(): Uint8Array {
-        return this.fromHex(this._QRCode)
+    public get masterQRCode(): Uint8Array {
+        return this.fromHex(this._masterQRCode)
     }
 
     public get symmetricKey(): Uint8Array {
@@ -134,6 +141,10 @@ export class TestUser {
 
     public get apiAuthKeypair(): SignatureKeypair {
         return safeDeposit.signatureKeypair(this.fromHex(this._apiAuthKeypairSeed))
+    }
+
+    public get identity(): Uint8Array {
+        return this.fromHex(this._identity)
     }
 
     public get emailAddresses(): string[] {
